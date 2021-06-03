@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 using DanishAddressSeed.Dawa;
+using DanishAddressSeed.Location;
 using DanishAddressSeed.SchemaMigration;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Configuration;
@@ -30,10 +31,11 @@ namespace DanishAddressSeed
                 .Build();
 
             var serviceProvider = new ServiceCollection()
-                .AddSingleton<IConfigurationRoot>(config)
+                .AddSingleton<IConfiguration>(config)
                 .AddLogging(x => x.AddConsole())
                 .AddSingleton<Startup>()
                 .AddTransient<IClient, Client>()
+                .AddTransient<ILocationPostgres, LocationPostgres>()
                 .AddHttpClient()
                 .AddFluentMigratorCore()
                 .ConfigureRunner(rb => rb
