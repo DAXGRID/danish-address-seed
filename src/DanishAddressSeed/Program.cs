@@ -1,5 +1,6 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
+using System.Threading.Tasks;
+using DanishAddressSeed.Dawa;
 using DanishAddressSeed.SchemaMigration;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Configuration;
@@ -10,7 +11,7 @@ namespace DanishAddressSeed
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var root = Directory.GetCurrentDirectory();
             var dotenv = Path.Combine(root, ".env");
@@ -19,7 +20,7 @@ namespace DanishAddressSeed
             var serviceProvider = BuildServiceProvider();
             var startup = serviceProvider.GetService<Startup>();
 
-            startup.Start();
+            await startup.Start();
         }
 
         private static ServiceProvider BuildServiceProvider()
@@ -32,6 +33,7 @@ namespace DanishAddressSeed
                 .AddSingleton<IConfigurationRoot>(config)
                 .AddLogging(x => x.AddConsole())
                 .AddSingleton<Startup>()
+                .AddTransient<IClient, Client>()
                 .AddHttpClient()
                 .AddFluentMigratorCore()
                 .ConfigureRunner(rb => rb
