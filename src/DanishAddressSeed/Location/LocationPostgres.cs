@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DanishAddressSeed.Dawa;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 
@@ -16,7 +15,7 @@ namespace DanishAddressSeed.Location
             _config = config;
         }
 
-        public async Task InsertOfficalAccessAddresses(List<DawaOfficalAccessAddress> addresses)
+        public async Task InsertOfficalAccessAddresses(List<OfficalAccessAddress> addresses)
         {
             using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
             await connection.OpenAsync();
@@ -72,7 +71,7 @@ namespace DanishAddressSeed.Location
                 command.Parameters.AddWithValue("@id", Guid.NewGuid());
                 command.Parameters.AddWithValue("@east", address.EastCoordinate);
                 command.Parameters.AddWithValue("@north", address.NorthCoordinate);
-                command.Parameters.AddWithValue("@status", address.GetStatusStringRepresentation());
+                command.Parameters.AddWithValue("@status", address.Status);
                 command.Parameters.AddWithValue(
                     "@house_number", string.IsNullOrEmpty(address.HouseNumber) ? DBNull.Value : address.HouseNumber);
                 command.Parameters.AddWithValue(
@@ -80,19 +79,26 @@ namespace DanishAddressSeed.Location
                 command.Parameters.AddWithValue(
                     "@town_name", string.IsNullOrEmpty(address.TownName) ? DBNull.Value : address.TownName);
                 command.Parameters.AddWithValue(
-                    "@post_district_code", string.IsNullOrEmpty(address.PostDistrictCode) ? DBNull.Value : address.PostDistrictCode);
+                    "@post_district_code",
+                    string.IsNullOrEmpty(address.PostDistrictCode) ? DBNull.Value : address.PostDistrictCode);
                 command.Parameters.AddWithValue(
-                    "@post_district_name", string.IsNullOrEmpty(address.PostDistrictName) ? DBNull.Value : address.PostDistrictName);
+                    "@post_district_name",
+                    string.IsNullOrEmpty(address.PostDistrictName) ? DBNull.Value : address.PostDistrictName);
                 command.Parameters.AddWithValue(
-                    "@municipal_code", string.IsNullOrEmpty(address.MunicipalCode) ? DBNull.Value : address.MunicipalCode);
+                    "@municipal_code",
+                    string.IsNullOrEmpty(address.MunicipalCode) ? DBNull.Value : address.MunicipalCode);
                 command.Parameters.AddWithValue(
-                    "@access_address_external_id", string.IsNullOrEmpty(address.AccessAdddressExternalId) ? DBNull.Value : address.AccessAdddressExternalId);
+                    "@access_address_external_id",
+                    string.IsNullOrEmpty(address.AccessAdddressExternalId) ? DBNull.Value : address.AccessAdddressExternalId);
                 command.Parameters.AddWithValue(
-                    "@road_external_id", string.IsNullOrEmpty(address.RoadExternalId) ? DBNull.Value : address.RoadExternalId);
+                    "@road_external_id",
+                    string.IsNullOrEmpty(address.RoadExternalId) ? DBNull.Value : address.RoadExternalId);
                 command.Parameters.AddWithValue(
-                    "@plot_external_id", string.IsNullOrEmpty(address.PlotExternalId) ? DBNull.Value : address.PlotExternalId);
+                    "@plot_external_id",
+                    string.IsNullOrEmpty(address.PlotExternalId) ? DBNull.Value : address.PlotExternalId);
                 command.Parameters.AddWithValue(
-                    "@road_name", string.IsNullOrEmpty(address.RoadName) ? DBNull.Value : address.RoadName);
+                    "@road_name",
+                    string.IsNullOrEmpty(address.RoadName) ? DBNull.Value : address.RoadName);
                 command.Parameters.AddWithValue("@created", address.Created);
                 command.Parameters.AddWithValue("@updated", address.Updated);
                 command.Parameters.AddWithValue("@location_updated", address.LocationUpdated);
