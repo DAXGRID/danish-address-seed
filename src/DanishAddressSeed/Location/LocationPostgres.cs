@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace DanishAddressSeed.Location
@@ -9,10 +10,12 @@ namespace DanishAddressSeed.Location
     internal class LocationPostgres : ILocationPostgres
     {
         private readonly IConfiguration _config;
+        private readonly ILogger<LocationPostgres> _logger;
 
-        public LocationPostgres(IConfiguration config)
+        public LocationPostgres(IConfiguration config, ILogger<LocationPostgres> logger)
         {
             _config = config;
+            _logger = logger;
         }
 
         public async Task InsertOfficalAccessAddresses(List<OfficalAccessAddress> addresses)
@@ -104,6 +107,88 @@ namespace DanishAddressSeed.Location
                 command.Parameters.AddWithValue("@location_updated", address.LocationUpdated);
 
                 await command.ExecuteNonQueryAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+
+        public async Task InsertOfficialUnitAddresses(List<OfficalUnitAddress> addresses)
+        {
+            using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
+            await connection.OpenAsync();
+
+            using var transaction = await connection.BeginTransactionAsync();
+
+            var getAccessAddressIdQuery = @"SELECT id
+                         FROM location.official_access_address
+                         WHERE access_address_external_id = @access_address_external_id";
+
+            var insertUnitAddressQuery = @"
+                INSERT INTO location.official_unit_address (
+                        id,
+                        access_address_id,
+                        status,
+                        floor_name,
+                        suit_name,
+                        unit_address_external_id,
+                        created,
+                        updated,
+                        access_address_external_id
+                    ) VALUES (
+                        @id,
+                        @access_address_id,
+                        @status,
+                        @floor_name,
+                        @suit_name,
+                        @unit_address_external_id,
+                        @created,
+                        @updated,
+                        @access_address_external_id
+                    );
+                ";
+
+            foreach (var address in addresses)
+            {
+                using var getAccessAddresIdCmd = new NpgsqlCommand(getAccessAddressIdQuery)
+                {
+                    Connection = connection,
+                    Transaction = transaction
+                };
+
+                getAccessAddresIdCmd.Parameters.AddWithValue("@access_address_external_id", address.AccessAddressExternalId);
+
+                var result = await getAccessAddresIdCmd.ExecuteScalarAsync();
+
+                if (result is null)
+                {
+                    _logger.LogWarning(
+                        $"Skipping acess address id could not be found on external id: '{address.AccessAddressExternalId}");
+                    continue;
+                }
+
+                address.AccessAddressId = (Guid)result;
+
+                using var insertUnitAddressCmd = new NpgsqlCommand(insertUnitAddressQuery)
+                {
+                    Connection = connection,
+                    Transaction = transaction
+                };
+
+                insertUnitAddressCmd.Parameters.AddWithValue("@id", Guid.NewGuid());
+                insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", address.AccessAddressId);
+                insertUnitAddressCmd.Parameters.AddWithValue("@status", address.Status);
+                insertUnitAddressCmd.Parameters.AddWithValue(
+                    "@floor_name",
+                    string.IsNullOrEmpty(address.FloorName) ? DBNull.Value : address.FloorName);
+                insertUnitAddressCmd.Parameters.AddWithValue(
+                    "@suit_name",
+                    string.IsNullOrEmpty(address.SuitName) ? DBNull.Value : address.SuitName);
+                insertUnitAddressCmd.Parameters.AddWithValue("@unit_address_external_id", address.UnitAddressExternalId);
+                insertUnitAddressCmd.Parameters.AddWithValue("@created", address.Created);
+                insertUnitAddressCmd.Parameters.AddWithValue("@updated", address.Updated);
+                insertUnitAddressCmd.Parameters.AddWithValue("@access_address_external_id", address.AccessAddressExternalId);
+
+                await insertUnitAddressCmd.ExecuteNonQueryAsync();
             }
 
             await transaction.CommitAsync();
