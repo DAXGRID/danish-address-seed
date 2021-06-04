@@ -75,6 +75,43 @@ namespace DanishAddressSeed.Dawa
             await _locationPostgres.InsertOfficalAccessAddresses(addresses);
         }
 
+        public async Task ImportOfficalUnitAddress()
+        {
+            var unitAddressUrl = $"{_dawaBasePath}?entitet=adresse";
+
+            var count = 0;
+
+            using var response = await _httpClient.GetAsync(unitAddressUrl, HttpCompletionOption.ResponseHeadersRead);
+            using var stream = await response.Content.ReadAsStreamAsync();
+            using var streamReader = new StreamReader(stream);
+            using var reader = new JsonTextReader(streamReader);
+
+            var addresses = new List<OfficalUnitAddress>();
+            var serializer = new JsonSerializer();
+            while (await reader.ReadAsync())
+            {
+                if (reader.TokenType == JsonToken.StartObject)
+                {
+                    var unitAddress = serializer.Deserialize<DawaOfficalUnitAddress>(reader);
+
+                    var mappedAddress = _locationDawaMapper.Map(unitAddress);
+
+                    addresses.Add(mappedAddress);
+
+                    if (addresses.Count == 10000)
+                    {
+                        count += 10000;
+                        await _locationPostgres.InsertOfficialUnitAddresses(addresses);
+                        _logger.LogInformation($"Imported {nameof(OfficalUnitAddress)}: {count}");
+
+                        addresses.Clear();
+                    }
+                }
+            }
+
+            await _locationPostgres.InsertOfficialUnitAddresses(addresses);
+        }
+
         private async Task<Dictionary<string, string>> GetRoads()
         {
             var serializer = new JsonSerializer();

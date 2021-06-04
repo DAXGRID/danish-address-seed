@@ -30,6 +30,21 @@ namespace DanishAddressSeed.Mapper
             };
         }
 
+        public OfficalUnitAddress Map(DawaOfficalUnitAddress dawaAddress)
+        {
+            return new OfficalUnitAddress
+            {
+                Created = dawaAddress.Created,
+                FloorName = dawaAddress.FloorName,
+                Id = Guid.NewGuid(),
+                Status = GetStatusStringRepresentation(dawaAddress.Status),
+                SuitName = dawaAddress.SuitName,
+                UnitAddressExternalId = dawaAddress.UnitAddressExternalId,
+                Updated = dawaAddress.Updated,
+                AccessAddressExternalId = dawaAddress.AccessAddressExternalId
+            };
+        }
+
         private string GetStatusStringRepresentation(Status status)
         {
             switch (status)

@@ -27,6 +27,7 @@ namespace DanishAddressSeed
             _migrationRunner.MigrateUp();
 
             await _client.ImportOfficalAccessAddress();
+            await _client.ImportOfficalUnitAddress();
         }
     }
 }
