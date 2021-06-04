@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace DanishAddressSeed.Dawa
 {
-    internal class Road
+    internal class DawaRoad
     {
         [JsonProperty("id")]
         public string Id { get; set; }

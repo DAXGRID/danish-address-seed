@@ -6,6 +6,6 @@ namespace DanishAddressSeed.Location
 {
     internal interface ILocationPostgres
     {
-        Task InsertOfficalAccessAddresses(List<DawaOfficalAccessAddress> addresses);
+        Task InsertOfficalAccessAddresses(List<OfficalAccessAddress> addresses);
     }
 }

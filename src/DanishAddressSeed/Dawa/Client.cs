@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DanishAddressSeed.Location;
+using DanishAddressSeed.Mapper;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -14,26 +15,30 @@ namespace DanishAddressSeed.Dawa
         private readonly HttpClient _httpClient;
         private readonly ILogger<Client> _logger;
         private readonly ILocationPostgres _locationPostgres;
+        private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering/udtraek";
+        private readonly ILocationDawaMapper _locationDawaMapper;
 
         public Client(
             HttpClient httpClient,
             ILogger<Client> logger,
-            ILocationPostgres locationPostgres)
+            ILocationPostgres locationPostgres,
+            ILocationDawaMapper locationDawaMapper)
         {
             _httpClient = httpClient;
             _logger = logger;
             _locationPostgres = locationPostgres;
+            _locationDawaMapper = locationDawaMapper;
         }
 
         public async Task ImportOfficalAccessAddress()
         {
+            var postCodesTask = GetPostCodes();
+            var roadsTask = GetRoads();
 
-            _logger.LogInformation("Getting postcodes");
-            var postCodes = await GetPostCodes();
-            _logger.LogInformation("Getting roads");
-            var roads = await GetRoads();
+            var postCodes = await postCodesTask;
+            var roads = await roadsTask;
 
-            var accessAddressUrl = "https://api.dataforsyningen.dk/replikering/udtraek?entitet=adgangsadresse";
+            var accessAddressUrl = $"{_dawaBasePath}?entitet=adgangsadresse";
             var count = 0;
 
             using var response = await _httpClient.GetAsync(accessAddressUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -41,31 +46,26 @@ namespace DanishAddressSeed.Dawa
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var addresses = new List<DawaOfficalAccessAddress>();
+            var addresses = new List<OfficalAccessAddress>();
             var serializer = new JsonSerializer();
-            while (reader.Read())
+            while (await reader.ReadAsync())
             {
                 if (reader.TokenType == JsonToken.StartObject)
                 {
                     var address = serializer.Deserialize<DawaOfficalAccessAddress>(reader);
 
-                    if (postCodes.TryGetValue(address.PostDistrictCode, out var postDistrictName))
-                    {
-                        address.PostDistrictName = postDistrictName;
-                    }
+                    postCodes.TryGetValue(address.PostDistrictCode, out var postDistrictName);
+                    roads.TryGetValue(address.RoadExternalId, out var roadName);
 
-                    if (roads.TryGetValue(address.RoadExternalId, out var roadName))
-                    {
-                        address.RoadName = roadName;
-                    }
+                    var mappedAddress = _locationDawaMapper.Map(address, postDistrictName, roadName);
 
-                    addresses.Add(address);
+                    addresses.Add(mappedAddress);
 
                     if (addresses.Count == 10000)
                     {
                         count += 10000;
-                        _logger.LogInformation($"Imported {nameof(DawaOfficalAccessAddress)}: {count}");
                         await _locationPostgres.InsertOfficalAccessAddresses(addresses);
+                        _logger.LogInformation($"Imported {nameof(DawaOfficalAccessAddress)}: {count}");
 
                         addresses.Clear();
                     }
@@ -78,14 +78,14 @@ namespace DanishAddressSeed.Dawa
         private async Task<Dictionary<string, string>> GetRoads()
         {
             var serializer = new JsonSerializer();
-            var postNumberUrl = "https://api.dataforsyningen.dk/replikering/udtraek?entitet=navngivenvej";
+            var postNumberUrl = $"{_dawaBasePath}?entitet=navngivenvej";
             var postNumberResponse = await _httpClient.GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 
             var stream = await postNumberResponse.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var result = serializer.Deserialize<List<Road>>(reader);
+            var result = serializer.Deserialize<List<DawaRoad>>(reader);
 
             return result.ToDictionary(x => x.Id, x => x.Name);
         }
@@ -93,14 +93,14 @@ namespace DanishAddressSeed.Dawa
         private async Task<Dictionary<string, string>> GetPostCodes()
         {
             var serializer = new JsonSerializer();
-            var postNumberUrl = "https://api.dataforsyningen.dk/replikering/udtraek?entitet=postnummer";
+            var postNumberUrl = $"{_dawaBasePath}?entitet=postnummer";
             var postNumberResponse = await _httpClient.GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 
             var stream = await postNumberResponse.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var result = serializer.Deserialize<List<PostCode>>(reader);
+            var result = serializer.Deserialize<List<DawaPostCode>>(reader);
 
             return result.ToDictionary(x => x.Number, x => x.Name);
         }
