@@ -28,6 +28,8 @@ namespace DanishAddressSeed
 
             await _client.ImportOfficalAccessAddress();
             await _client.ImportOfficalUnitAddress();
+
+            _logger.LogInformation($"Finished {nameof(DanishAddressSeed)}");
         }
     }
 }

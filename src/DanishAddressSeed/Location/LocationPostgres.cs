@@ -162,7 +162,7 @@ namespace DanishAddressSeed.Location
                 if (result is null)
                 {
                     _logger.LogWarning(
-                        $"Skipping acess address id could not be found on external id: '{address.AccessAddressExternalId}");
+                        $"Access-address-id could not be found on external-id: '{address.AccessAddressExternalId}");
                     continue;
                 }
 

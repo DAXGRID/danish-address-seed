@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -38,13 +39,16 @@ namespace DanishAddressSeed.Dawa
             var postCodes = await postCodesTask;
             var roads = await roadsTask;
 
-            var accessAddressUrl = $"{_dawaBasePath}?entitet=adgangsadresse";
+            var accessAddressUrl = $"{_dawaBasePath}?entitet=adgangsadresse&ndjson";
             var count = 0;
 
             using var response = await _httpClient.GetAsync(accessAddressUrl, HttpCompletionOption.ResponseHeadersRead);
             using var stream = await response.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
-            using var reader = new JsonTextReader(streamReader);
+            using var reader = new JsonTextReader(streamReader)
+            {
+                SupportMultipleContent = true
+            };
 
             var addresses = new List<OfficalAccessAddress>();
             var serializer = new JsonSerializer();
@@ -52,7 +56,16 @@ namespace DanishAddressSeed.Dawa
             {
                 if (reader.TokenType == JsonToken.StartObject)
                 {
-                    var address = serializer.Deserialize<DawaOfficalAccessAddress>(reader);
+                    DawaOfficalAccessAddress address = null;
+                    try
+                    {
+                        address = serializer.Deserialize<DawaOfficalAccessAddress>(reader);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex.Message);
+                        continue;
+                    }
 
                     postCodes.TryGetValue(address.PostDistrictCode, out var postDistrictName);
                     roads.TryGetValue(address.RoadExternalId, out var roadName);
@@ -77,14 +90,17 @@ namespace DanishAddressSeed.Dawa
 
         public async Task ImportOfficalUnitAddress()
         {
-            var unitAddressUrl = $"{_dawaBasePath}?entitet=adresse";
+            var unitAddressUrl = $"{_dawaBasePath}?entitet=adresse&ndjson";
 
             var count = 0;
 
             using var response = await _httpClient.GetAsync(unitAddressUrl, HttpCompletionOption.ResponseHeadersRead);
             using var stream = await response.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
-            using var reader = new JsonTextReader(streamReader);
+            using var reader = new JsonTextReader(streamReader)
+            {
+                SupportMultipleContent = true
+            };
 
             var addresses = new List<OfficalUnitAddress>();
             var serializer = new JsonSerializer();
@@ -92,7 +108,17 @@ namespace DanishAddressSeed.Dawa
             {
                 if (reader.TokenType == JsonToken.StartObject)
                 {
-                    var unitAddress = serializer.Deserialize<DawaOfficalUnitAddress>(reader);
+                    DawaOfficalUnitAddress unitAddress = null;
+                    try
+                    {
+                        unitAddress = serializer.Deserialize<DawaOfficalUnitAddress>(reader);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(
+                            $"JSON deserialize failed with error ${ex.Message} and content {reader.Value}");
+                        continue;
+                    }
 
                     var mappedAddress = _locationDawaMapper.Map(unitAddress);
 
