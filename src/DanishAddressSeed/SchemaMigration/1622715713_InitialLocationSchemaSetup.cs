@@ -3,7 +3,7 @@ using FluentMigrator;
 
 namespace DanishAddressSeed.SchemaMigration
 {
-    [Migration(1622715713)]
+    [Migration(1622715717)]
     public class InitialLocationSchemaSetup : Migration
     {
         public override void Up()

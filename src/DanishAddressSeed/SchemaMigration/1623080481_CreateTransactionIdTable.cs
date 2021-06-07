@@ -2,7 +2,7 @@ using FluentMigrator;
 
 namespace DanishAddressSeed.SchemaMigration
 {
-    [Migration(1623080481)]
+    [Migration(1623080482)]
     public class CreateTransactionIdTable : Migration
     {
         public override void Up()

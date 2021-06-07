@@ -32,13 +32,9 @@ namespace DanishAddressSeed
             _migrationRunner.MigrateUp();
 
             var lastTransactionId = await _locationPostgres.GetLatestTransactionHistory();
-            if (string.IsNullOrEmpty(lastTransactionId))
-            {
-                lastTransactionId = "0";
-            }
-
             var newTransactionId = await _client.GetTransactionId();
-            if (lastTransactionId == "0")
+
+            if (string.IsNullOrEmpty(lastTransactionId))
             {
                 // Bulk import
                 await _client.BulkOfficalAccessAddress(newTransactionId);
@@ -46,7 +42,9 @@ namespace DanishAddressSeed
             }
             else
             {
-                // Updates
+                // Changeset updates
+                await _client.UpdateOfficalAccessAddress(lastTransactionId, newTransactionId);
+                await _client.UpdateOfficialUnitAddress(lastTransactionId, newTransactionId);
             }
 
             _logger.LogInformation($"Insert new transaction history with transaction_id '{newTransactionId}'");
