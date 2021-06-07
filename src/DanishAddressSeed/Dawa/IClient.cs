@@ -6,5 +6,6 @@ namespace DanishAddressSeed.Dawa
     {
         Task ImportOfficalAccessAddress();
         Task ImportOfficalUnitAddress();
+        Task<string> GetTransactionId();
     }
 }
