@@ -193,5 +193,52 @@ namespace DanishAddressSeed.Location
 
             await transaction.CommitAsync();
         }
+
+        public async Task<string> GetLatestTransactionHistory()
+        {
+            using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
+            await connection.OpenAsync();
+
+            var query = @"
+              SELECT transaction_id
+              FROM transaction_history
+              ORDER BY transaction_timestamp DESC
+            ";
+
+            using var cmd = new NpgsqlCommand(query, connection);
+
+            var result = await cmd.ExecuteScalarAsync();
+
+            if (result is not null)
+            {
+                return (string)result;
+            }
+            else
+            {
+                return string.Empty;
+            }
+        }
+
+        public async Task InsertTransactionHistory(string tId, DateTime tTimestamp)
+        {
+            using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
+            await connection.OpenAsync();
+
+            var query = @"
+                INSERT INTO location.transaction_history (
+                    transaction_id,
+                    transaction_timestamp
+                ) VALUES (
+                    @transaction_id,
+                    @transaction_timestamp
+                )
+            ";
+
+            using var cmd = new NpgsqlCommand(query, connection);
+            cmd.Parameters.AddWithValue("@transaction_id", tId);
+            cmd.Parameters.AddWithValue("@transaction_timestamp", tTimestamp);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }

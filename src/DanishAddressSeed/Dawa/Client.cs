@@ -52,15 +52,15 @@ namespace DanishAddressSeed.Dawa
             return result.TxId;
         }
 
-        public async Task ImportOfficalAccessAddress()
+        public async Task BulkOfficalAccessAddress(string tId)
         {
-            var postCodesTask = GetPostCodes();
-            var roadsTask = GetRoads();
+            var postCodesTask = GetPostCodes(tId);
+            var roadsTask = GetRoads(tId);
 
             var postCodes = await postCodesTask;
             var roads = await roadsTask;
 
-            var accessAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adgangsadresse&ndjson";
+            var accessAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adgangsadresse&ndjson&txid={tId}";
             var count = 0;
 
             using var response = await _httpClient.GetAsync(accessAddressUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -109,9 +109,9 @@ namespace DanishAddressSeed.Dawa
             await _locationPostgres.InsertOfficalAccessAddresses(addresses);
         }
 
-        public async Task ImportOfficalUnitAddress()
+        public async Task BulkImportOfficalUnitAddress(string tId)
         {
-            var unitAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adresse&ndjson";
+            var unitAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adresse&ndjson&txid={tId}";
             var count = 0;
 
             using var response = await _httpClient.GetAsync(unitAddressUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -158,10 +158,10 @@ namespace DanishAddressSeed.Dawa
             await _locationPostgres.InsertOfficialUnitAddresses(addresses);
         }
 
-        private async Task<Dictionary<string, string>> GetRoads()
+        private async Task<Dictionary<string, string>> GetRoads(string tId)
         {
             var serializer = new JsonSerializer();
-            var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=navngivenvej";
+            var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=navngivenvej&txid={tId}";
             var postNumberResponse = await _httpClient
                 .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 
@@ -174,10 +174,10 @@ namespace DanishAddressSeed.Dawa
             return result.ToDictionary(x => x.Id, x => x.Name);
         }
 
-        private async Task<Dictionary<string, string>> GetPostCodes()
+        private async Task<Dictionary<string, string>> GetPostCodes(string tId)
         {
             var serializer = new JsonSerializer();
-            var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=postnummer";
+            var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=postnummer&txid={tId}";
             var postNumberResponse = await _httpClient
                 .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 

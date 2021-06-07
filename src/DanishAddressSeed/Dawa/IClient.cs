@@ -4,8 +4,8 @@ namespace DanishAddressSeed.Dawa
 {
     internal interface IClient
     {
-        Task ImportOfficalAccessAddress();
-        Task ImportOfficalUnitAddress();
+        Task BulkOfficalAccessAddress(string tId);
+        Task BulkImportOfficalUnitAddress(string tId);
         Task<string> GetTransactionId();
     }
 }
