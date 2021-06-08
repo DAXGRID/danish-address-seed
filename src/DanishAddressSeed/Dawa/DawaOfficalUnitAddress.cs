@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace DanishAddressSeed.Dawa
 {
-    internal class DawaOfficalUnitAddress
+    internal record DawaOfficalUnitAddress
     {
         [JsonProperty("adgangsadresseid")]
         public string AccessAddressExternalId { get; set; }

@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace DanishAddressSeed.Dawa
 {
-    internal class DawaEntityChange<T>
+    internal record DawaEntityChange<T>
     {
         [JsonProperty("txtid")]
         public string TxtId { get; set; }

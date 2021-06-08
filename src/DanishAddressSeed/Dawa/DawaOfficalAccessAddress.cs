@@ -16,7 +16,7 @@ namespace DanishAddressSeed.Dawa
         Discontinued = 4
     }
 
-    internal class DawaOfficalAccessAddress
+    internal record DawaOfficalAccessAddress
     {
         [JsonProperty("oprettet")]
         public DateTime Created { get; set; }
