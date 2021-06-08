@@ -37,8 +37,8 @@ namespace DanishAddressSeed
             if (string.IsNullOrEmpty(lastTransactionId))
             {
                 _logger.LogInformation("First time running, doing full bulk import");
-                await _client.BulkOfficalAccessAddress(newTransactionId);
-                await _client.BulkImportOfficalUnitAddress(newTransactionId);
+                await _client.BulkOfficialAccessAddress(newTransactionId);
+                await _client.BulkImportOfficialUnitAddress(newTransactionId);
             }
             else
             {

@@ -51,7 +51,7 @@ namespace DanishAddressSeed.Dawa
             return result.TxId;
         }
 
-        public async Task BulkOfficalAccessAddress(string tId)
+        public async Task BulkOfficialAccessAddress(string tId)
         {
             var postCodesTask = GetPostCodes(tId);
             var roadsTask = GetRoads(tId);
@@ -108,7 +108,7 @@ namespace DanishAddressSeed.Dawa
             await _locationPostgres.InsertOfficalAccessAddresses(addresses);
         }
 
-        public async Task BulkImportOfficalUnitAddress(string tId)
+        public async Task BulkImportOfficialUnitAddress(string tId)
         {
             var unitAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adresse&ndjson&txid={tId}";
             var count = 0;
