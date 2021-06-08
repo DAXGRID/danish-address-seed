@@ -41,7 +41,6 @@ namespace DanishAddressSeed
                 .WriteTo.Console(new CompactJsonFormatter())
                 .CreateLogger();
 
-
             var serviceProvider = new ServiceCollection()
                 .AddSingleton<IConfiguration>(config)
                 .AddLogging(logging =>
