@@ -16,7 +16,7 @@ namespace DanishAddressSeed.Dawa
         private readonly HttpClient _httpClient;
         private readonly ILogger<Client> _logger;
         private readonly ILocationPostgres _locationPostgres;
-        private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering/udtraek";
+        private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering";
         private readonly ILocationDawaMapper _locationDawaMapper;
 
         public Client(
@@ -31,15 +31,35 @@ namespace DanishAddressSeed.Dawa
             _locationDawaMapper = locationDawaMapper;
         }
 
-        public async Task ImportOfficalAccessAddress()
+        public async Task<string> GetTransactionId()
         {
-            var postCodesTask = GetPostCodes();
-            var roadsTask = GetRoads();
+            var transactionUrl = $"{_dawaBasePath}/senestetransaktion";
+
+            using var response = await _httpClient.GetAsync(transactionUrl, HttpCompletionOption.ResponseHeadersRead);
+            var stream = await response.Content.ReadAsStreamAsync();
+            using var streamReader = new StreamReader(stream);
+            using var reader = new JsonTextReader(streamReader);
+
+            var serializer = new JsonSerializer();
+            var result = serializer.Deserialize<DawaTransaction>(reader);
+
+            if (string.IsNullOrEmpty(result.TxId))
+            {
+                throw new Exception("txid cannot be empty");
+            }
+
+            return result.TxId;
+        }
+
+        public async Task BulkOfficialAccessAddress(string tId)
+        {
+            var postCodesTask = GetPostCodes(tId);
+            var roadsTask = GetRoads(tId);
 
             var postCodes = await postCodesTask;
             var roads = await roadsTask;
 
-            var accessAddressUrl = $"{_dawaBasePath}?entitet=adgangsadresse&ndjson";
+            var accessAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adgangsadresse&ndjson&txid={tId}";
             var count = 0;
 
             using var response = await _httpClient.GetAsync(accessAddressUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -88,10 +108,9 @@ namespace DanishAddressSeed.Dawa
             await _locationPostgres.InsertOfficalAccessAddresses(addresses);
         }
 
-        public async Task ImportOfficalUnitAddress()
+        public async Task BulkImportOfficialUnitAddress(string tId)
         {
-            var unitAddressUrl = $"{_dawaBasePath}?entitet=adresse&ndjson";
-
+            var unitAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adresse&ndjson&txid={tId}";
             var count = 0;
 
             using var response = await _httpClient.GetAsync(unitAddressUrl, HttpCompletionOption.ResponseHeadersRead);
@@ -138,11 +157,112 @@ namespace DanishAddressSeed.Dawa
             await _locationPostgres.InsertOfficialUnitAddresses(addresses);
         }
 
-        private async Task<Dictionary<string, string>> GetRoads()
+        public async Task UpdateOfficalAccessAddress(string fromTransId, string toTransId)
         {
             var serializer = new JsonSerializer();
-            var postNumberUrl = $"{_dawaBasePath}?entitet=navngivenvej";
-            var postNumberResponse = await _httpClient.GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
+            var url = @$"{_dawaBasePath}/haendelser?entitet=adgangsadresse&txidfra={fromTransId}&txidtil={toTransId}";
+            var postNumberResponse = await _httpClient
+                .GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+
+            var postCodesTask = GetPostCodes(toTransId);
+            var roadsTask = GetRoads(toTransId);
+
+            var postCodes = await postCodesTask;
+            var roads = await roadsTask;
+
+            var stream = await postNumberResponse.Content.ReadAsStreamAsync();
+            using var streamReader = new StreamReader(stream);
+            using var reader = new JsonTextReader(streamReader)
+            {
+                SupportMultipleContent = true
+            };
+
+            var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalAccessAddress>>>(reader);
+
+            _logger.LogInformation($"Received '{result.Count()} OfficialAccessAddress changes");
+
+            foreach (var changeEvent in result)
+            {
+                if (changeEvent.Operation == "update")
+                {
+                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
+                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName);
+
+                    await _locationPostgres.UpdateOfficalAccessAddress(mapped);
+
+                }
+                else if (changeEvent.Operation == "insert")
+                {
+                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
+                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName);
+
+                    await _locationPostgres
+                        .InsertOfficalAccessAddresses(new List<OfficalAccessAddress> { mapped });
+                }
+                else if (changeEvent.Operation == "delete")
+                {
+                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
+                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName, true);
+
+                    await _locationPostgres.UpdateOfficalAccessAddress(mapped);
+                }
+                else
+                {
+                    throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
+                }
+            }
+        }
+
+        public async Task UpdateOfficialUnitAddress(string fromTransId, string toTransId)
+        {
+            var serializer = new JsonSerializer();
+            var url = @$"{_dawaBasePath}/haendelser?entitet=adresse&txidfra={fromTransId}&txidtil={toTransId}";
+            var postNumberResponse = await _httpClient
+                .GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+
+            var stream = await postNumberResponse.Content.ReadAsStreamAsync();
+            using var streamReader = new StreamReader(stream);
+            using var reader = new JsonTextReader(streamReader);
+
+            var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
+
+            _logger.LogInformation($"Received '{result.Count()} OfficialUnitAddress changes");
+
+            foreach (var changeEvent in result)
+            {
+                if (changeEvent.Operation == "update")
+                {
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data);
+                    await _locationPostgres.UpdateOfficialUnitAddress(mapped);
+                }
+                else if (changeEvent.Operation == "insert")
+                {
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data);
+
+                    await _locationPostgres
+                        .InsertOfficialUnitAddresses(new List<OfficalUnitAddress> { mapped });
+                }
+                else if (changeEvent.Operation == "delete")
+                {
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data, true);
+                    await _locationPostgres.UpdateOfficialUnitAddress(mapped);
+                }
+                else
+                {
+                    throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for UnitAddress");
+                }
+            }
+        }
+
+        private async Task<Dictionary<string, string>> GetRoads(string tId)
+        {
+            var serializer = new JsonSerializer();
+            var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=navngivenvej&txid={tId}";
+            var postNumberResponse = await _httpClient
+                .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 
             var stream = await postNumberResponse.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
@@ -153,11 +273,12 @@ namespace DanishAddressSeed.Dawa
             return result.ToDictionary(x => x.Id, x => x.Name);
         }
 
-        private async Task<Dictionary<string, string>> GetPostCodes()
+        private async Task<Dictionary<string, string>> GetPostCodes(string tId)
         {
             var serializer = new JsonSerializer();
-            var postNumberUrl = $"{_dawaBasePath}?entitet=postnummer";
-            var postNumberResponse = await _httpClient.GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
+            var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=postnummer&txid={tId}";
+            var postNumberResponse = await _httpClient
+                .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 
             var stream = await postNumberResponse.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);

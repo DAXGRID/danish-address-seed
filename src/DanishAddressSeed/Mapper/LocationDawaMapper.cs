@@ -6,7 +6,9 @@ namespace DanishAddressSeed.Mapper
 {
     internal class LocationDawaMapper : ILocationDawaMapper
     {
-        public OfficalAccessAddress Map(DawaOfficalAccessAddress dawaAddress, string postDistrictName, string roadName)
+        public OfficalAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
+                                        string postDistrictName,
+                                        string roadName, bool deleted = false)
         {
             return new OfficalAccessAddress
             {
@@ -26,11 +28,12 @@ namespace DanishAddressSeed.Mapper
                 RoadName = roadName,
                 Status = GetStatusStringRepresentation(dawaAddress.Status),
                 TownName = dawaAddress.TownName,
-                Updated = dawaAddress.Updated
+                Updated = dawaAddress.Updated,
+                Deleted = false
             };
         }
 
-        public OfficalUnitAddress Map(DawaOfficalUnitAddress dawaAddress)
+        public OfficalUnitAddress Map(DawaOfficalUnitAddress dawaAddress, bool deleted = false)
         {
             return new OfficalUnitAddress
             {
@@ -41,7 +44,8 @@ namespace DanishAddressSeed.Mapper
                 SuitName = dawaAddress.SuitName,
                 UnitAddressExternalId = dawaAddress.UnitAddressExternalId,
                 Updated = dawaAddress.Updated,
-                AccessAddressExternalId = dawaAddress.AccessAddressExternalId
+                AccessAddressExternalId = dawaAddress.AccessAddressExternalId,
+                Deleted = false
             };
         }
 

@@ -2,16 +2,17 @@ using System;
 
 namespace DanishAddressSeed.Location
 {
-    internal class OfficalUnitAddress
+    internal record OfficalUnitAddress
     {
-        public Guid Id { get; set; }
-        public Guid AccessAddressId { get; set; }
-        public string Status { get; set; }
-        public string FloorName { get; set; }
-        public string SuitName { get; set; }
-        public string UnitAddressExternalId { get; set; }
-        public DateTime Created { get; set; }
-        public DateTime Updated { get; set; }
-        public string AccessAddressExternalId { get; set; }
+        public Guid Id { get; init; }
+        public Guid AccessAddressId { get; init; }
+        public string Status { get; init; }
+        public string FloorName { get; init; }
+        public string SuitName { get; init; }
+        public string UnitAddressExternalId { get; init; }
+        public DateTime Created { get; init; }
+        public DateTime Updated { get; init; }
+        public string AccessAddressExternalId { get; init; }
+        public bool Deleted { get; init; }
     }
 }
