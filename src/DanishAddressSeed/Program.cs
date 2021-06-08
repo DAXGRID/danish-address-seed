@@ -8,6 +8,10 @@ using FluentMigrator.Runner;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
+using Serilog.Sinks.SystemConsole;
 
 namespace DanishAddressSeed
 {
@@ -31,9 +35,21 @@ namespace DanishAddressSeed
                 .AddEnvironmentVariables()
                 .Build();
 
+            var logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .MinimumLevel.Override("System", LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(new CompactJsonFormatter())
+                .CreateLogger();
+
+
             var serviceProvider = new ServiceCollection()
                 .AddSingleton<IConfiguration>(config)
-                .AddLogging(x => x.AddConsole())
+                .AddLogging(logging =>
+                {
+                    logging.AddSerilog(logger, true);
+                })
                 .AddSingleton<Startup>()
                 .AddTransient<IClient, Client>()
                 .AddTransient<ILocationPostgres, LocationPostgres>()
