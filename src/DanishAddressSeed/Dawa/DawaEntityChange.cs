@@ -4,7 +4,7 @@ namespace DanishAddressSeed.Dawa
 {
     internal record DawaEntityChange<T>
     {
-        [JsonProperty("txtid")]
+        [JsonProperty("txid")]
         public string TxtId { get; init; }
         [JsonProperty("operation")]
         public string Operation { get; init; }

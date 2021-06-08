@@ -42,7 +42,7 @@ namespace DanishAddressSeed
             }
             else
             {
-                _logger.LogInformation("Updating existing unit and access addresses");
+                _logger.LogInformation($"Updating using existing tid {lastTransactionId} and new tid {newTransactionId}");
                 await _client.UpdateOfficalAccessAddress(lastTransactionId, newTransactionId);
                 await _client.UpdateOfficialUnitAddress(lastTransactionId, newTransactionId);
             }

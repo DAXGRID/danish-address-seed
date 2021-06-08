@@ -160,7 +160,7 @@ namespace DanishAddressSeed.Dawa
         public async Task UpdateOfficalAccessAddress(string fromTransId, string toTransId)
         {
             var serializer = new JsonSerializer();
-            var url = @$"{_dawaBasePath}/haendelser?entitet=adgangsadresse&txidfra={fromTransId}&txtidtil={toTransId}&ndjson";
+            var url = @$"{_dawaBasePath}/haendelser?entitet=adgangsadresse&txidfra={fromTransId}&txidtil={toTransId}";
             var postNumberResponse = await _httpClient
                 .GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
@@ -178,6 +178,8 @@ namespace DanishAddressSeed.Dawa
             };
 
             var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalAccessAddress>>>(reader);
+
+            _logger.LogInformation($"Received '{result.Count()} OfficialAccessAddress changes");
 
             foreach (var changeEvent in result)
             {
@@ -217,18 +219,17 @@ namespace DanishAddressSeed.Dawa
         public async Task UpdateOfficialUnitAddress(string fromTransId, string toTransId)
         {
             var serializer = new JsonSerializer();
-            var url = @$"{_dawaBasePath}/haendelser?entitet=adresse&txidfra={fromTransId}&txtidtil={toTransId}&ndjson";
+            var url = @$"{_dawaBasePath}/haendelser?entitet=adresse&txidfra={fromTransId}&txidtil={toTransId}";
             var postNumberResponse = await _httpClient
                 .GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
             var stream = await postNumberResponse.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
-            using var reader = new JsonTextReader(streamReader)
-            {
-                SupportMultipleContent = true
-            };
+            using var reader = new JsonTextReader(streamReader);
 
             var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
+
+            _logger.LogInformation($"Received '{result.Count()} OfficialUnitAddress changes");
 
             foreach (var changeEvent in result)
             {
@@ -244,7 +245,7 @@ namespace DanishAddressSeed.Dawa
                     await _locationPostgres
                         .InsertOfficialUnitAddresses(new List<OfficalUnitAddress> { mapped });
                 }
-                if (changeEvent.Operation == "update")
+                else if (changeEvent.Operation == "delete")
                 {
                     var mapped = _locationDawaMapper.Map(changeEvent.Data, true);
                     await _locationPostgres.UpdateOfficialUnitAddress(mapped);
