@@ -7,11 +7,9 @@ using DanishAddressSeed.SchemaMigration;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
-using Serilog.Sinks.SystemConsole;
 
 namespace DanishAddressSeed
 {
