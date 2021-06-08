@@ -20,12 +20,8 @@ CREATE TABLE IF NOT EXISTS "location"."official_access_address" (
 	"location_updated" timestamptz
 );
 
-CREATE INDEX IF NOT EXISTS ix_official_access_address_coord ON "location"."official_access_address" USING gist ("coord");
-
-CREATE INDEX "idx_official_access_address_access_address_external_id"
-    ON "location".official_access_address USING btree
-    (access_address_external_id ASC NULLS LAST)
-    TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS ix_official_access_address_coord
+    ON "location"."official_access_address" USING gist ("coord");
 
 CREATE TABLE IF NOT EXISTS "location"."official_unit_address" (
     "id" uuid PRIMARY KEY,
@@ -38,8 +34,3 @@ CREATE TABLE IF NOT EXISTS "location"."official_unit_address" (
 	"created" timestamptz,
 	"updated" timestamptz
 );
-
-CREATE INDEX "idx_official_unit_address_access_address_id"
-    ON "location".official_unit_address USING btree
-    (access_address_id ASC NULLS LAST)
-    TABLESPACE pg_default;

@@ -60,7 +60,7 @@ namespace DanishAddressSeed.Location
                     @created,
                     @updated,
                     @location_updated
-                )
+                ) ON CONFLICT (access_address_external_id) DO NOTHING;
             ";
 
             foreach (var address in addresses)
@@ -136,7 +136,8 @@ namespace DanishAddressSeed.Location
                     plot_external_id = @plot_external_id,
                     created = @created,
                     updated = @updated,
-                    location_updated = @location_updated
+                    location_updated = @location_updated,
+                    deleted = @deleted
                 WHERE access_address_external_id = @access_address_external_id
             ";
 
@@ -180,6 +181,7 @@ namespace DanishAddressSeed.Location
             command.Parameters.AddWithValue("@created", address.Created);
             command.Parameters.AddWithValue("@updated", address.Updated);
             command.Parameters.AddWithValue("@location_updated", address.LocationUpdated);
+            command.Parameters.AddWithValue("@deleted", address.Deleted);
 
             await command.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
@@ -218,7 +220,7 @@ namespace DanishAddressSeed.Location
                         @created,
                         @updated,
                         @access_address_external_id
-                    );
+                    ) ON CONFLICT (unit_address_external_id) DO NOTHING;
                 ";
 
             foreach (var address in addresses)
@@ -231,16 +233,16 @@ namespace DanishAddressSeed.Location
 
                 getAccessAddresIdCmd.Parameters.AddWithValue("@access_address_external_id", address.AccessAddressExternalId);
 
-                var result = await getAccessAddresIdCmd.ExecuteScalarAsync();
+                var getAccessAddressIdResult = await getAccessAddresIdCmd.ExecuteScalarAsync();
 
-                if (result is null)
+                if (getAccessAddressIdResult is null)
                 {
                     _logger.LogWarning(
                         $"Access-address-id could not be found on external-id: '{address.AccessAddressExternalId}");
                     continue;
                 }
 
-                address.AccessAddressId = (Guid)result;
+                var accessAddressId = (Guid)getAccessAddressIdResult;
 
                 using var insertUnitAddressCmd = new NpgsqlCommand(insertUnitAddressQuery)
                 {
@@ -249,7 +251,7 @@ namespace DanishAddressSeed.Location
                 };
 
                 insertUnitAddressCmd.Parameters.AddWithValue("@id", Guid.NewGuid());
-                insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", address.AccessAddressId);
+                insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", accessAddressId);
                 insertUnitAddressCmd.Parameters.AddWithValue("@status", address.Status);
                 insertUnitAddressCmd.Parameters.AddWithValue(
                     "@floor_name",
@@ -289,7 +291,8 @@ namespace DanishAddressSeed.Location
                     suit_name = @suit_name,
                     created = @created,
                     updated = @updated,
-                    access_address_external_id = @access_address_external_id
+                    access_address_external_id = @access_address_external_id,
+                    deleted = @deleted
                  WHERE unit_address_external_id = @unit_address_external_id
                 ";
 
@@ -301,16 +304,16 @@ namespace DanishAddressSeed.Location
 
             getAccessAddresIdCmd.Parameters.AddWithValue("@access_address_external_id", address.AccessAddressExternalId);
 
-            var result = await getAccessAddresIdCmd.ExecuteScalarAsync();
+            var accessAddressIdResult = await getAccessAddresIdCmd.ExecuteScalarAsync();
 
-            if (result is null)
+            if (accessAddressIdResult is null)
             {
                 _logger.LogWarning(
                     $"Access-address-id could not be found on external-id: '{address.AccessAddressExternalId}");
                 return;
             }
 
-            address.AccessAddressId = (Guid)result;
+            var accessAddressId = (Guid)accessAddressIdResult;
 
             using var insertUnitAddressCmd = new NpgsqlCommand(insertUnitAddressQuery)
             {
@@ -319,7 +322,7 @@ namespace DanishAddressSeed.Location
             };
 
             insertUnitAddressCmd.Parameters.AddWithValue("@id", Guid.NewGuid());
-            insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", address.AccessAddressId);
+            insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", accessAddressId);
             insertUnitAddressCmd.Parameters.AddWithValue("@status", address.Status);
             insertUnitAddressCmd.Parameters.AddWithValue(
                 "@floor_name",
@@ -331,6 +334,7 @@ namespace DanishAddressSeed.Location
             insertUnitAddressCmd.Parameters.AddWithValue("@created", address.Created);
             insertUnitAddressCmd.Parameters.AddWithValue("@updated", address.Updated);
             insertUnitAddressCmd.Parameters.AddWithValue("@access_address_external_id", address.AccessAddressExternalId);
+            insertUnitAddressCmd.Parameters.AddWithValue("@deleted", address.Deleted);
 
             await insertUnitAddressCmd.ExecuteNonQueryAsync();
 

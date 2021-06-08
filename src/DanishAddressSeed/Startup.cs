@@ -36,13 +36,13 @@ namespace DanishAddressSeed
 
             if (string.IsNullOrEmpty(lastTransactionId))
             {
-                // Bulk import
+                _logger.LogInformation("First time running, doing full bulk import");
                 await _client.BulkOfficalAccessAddress(newTransactionId);
                 await _client.BulkImportOfficalUnitAddress(newTransactionId);
             }
             else
             {
-                // Changeset updates
+                _logger.LogInformation("Updating existing unit and access addresses");
                 await _client.UpdateOfficalAccessAddress(lastTransactionId, newTransactionId);
                 await _client.UpdateOfficialUnitAddress(lastTransactionId, newTransactionId);
             }

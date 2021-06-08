@@ -190,7 +190,7 @@ namespace DanishAddressSeed.Dawa
                     await _locationPostgres.UpdateOfficalAccessAddress(mapped);
 
                 }
-                else if (changeEvent.Operation == "create")
+                else if (changeEvent.Operation == "insert")
                 {
                     postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
                     roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
@@ -198,6 +198,14 @@ namespace DanishAddressSeed.Dawa
 
                     await _locationPostgres
                         .InsertOfficalAccessAddresses(new List<OfficalAccessAddress> { mapped });
+                }
+                else if (changeEvent.Operation == "delete")
+                {
+                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
+                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName, true);
+
+                    await _locationPostgres.UpdateOfficalAccessAddress(mapped);
                 }
                 else
                 {
@@ -220,7 +228,6 @@ namespace DanishAddressSeed.Dawa
                 SupportMultipleContent = true
             };
 
-
             var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
 
             foreach (var changeEvent in result)
@@ -228,16 +235,19 @@ namespace DanishAddressSeed.Dawa
                 if (changeEvent.Operation == "update")
                 {
                     var mapped = _locationDawaMapper.Map(changeEvent.Data);
-
                     await _locationPostgres.UpdateOfficialUnitAddress(mapped);
-
                 }
-                else if (changeEvent.Operation == "create")
+                else if (changeEvent.Operation == "insert")
                 {
                     var mapped = _locationDawaMapper.Map(changeEvent.Data);
 
                     await _locationPostgres
                         .InsertOfficialUnitAddresses(new List<OfficalUnitAddress> { mapped });
+                }
+                if (changeEvent.Operation == "update")
+                {
+                    var mapped = _locationDawaMapper.Map(changeEvent.Data, true);
+                    await _locationPostgres.UpdateOfficialUnitAddress(mapped);
                 }
                 else
                 {

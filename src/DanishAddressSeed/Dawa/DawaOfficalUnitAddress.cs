@@ -6,18 +6,18 @@ namespace DanishAddressSeed.Dawa
     internal record DawaOfficalUnitAddress
     {
         [JsonProperty("adgangsadresseid")]
-        public string AccessAddressExternalId { get; set; }
+        public string AccessAddressExternalId { get; init; }
         [JsonProperty("status")]
-        public Status Status { get; set; }
+        public Status Status { get; init; }
         [JsonProperty("etage")]
-        public string FloorName { get; set; }
+        public string FloorName { get; init; }
         [JsonProperty("dør")]
-        public string SuitName { get; set; }
+        public string SuitName { get; init; }
         [JsonProperty("id")]
-        public string UnitAddressExternalId { get; set; }
+        public string UnitAddressExternalId { get; init; }
         [JsonProperty("oprettet")]
-        public DateTime Created { get; set; }
+        public DateTime Created { get; init; }
         [JsonProperty("ændret")]
-        public DateTime Updated { get; set; }
+        public DateTime Updated { get; init; }
     }
 }

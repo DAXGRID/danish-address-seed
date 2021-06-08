@@ -4,22 +4,23 @@ namespace DanishAddressSeed.Location
 {
     internal record OfficalAccessAddress
     {
-        public Guid Id { get; set; }
-        public DateTime Created { get; set; }
-        public DateTime Updated { get; set; }
-        public string MunicipalCode { get; set; }
-        public string Status { get; set; }
-        public string RoadCode { get; set; }
-        public string HouseNumber { get; set; }
-        public string PostDistrictCode { get; set; }
-        public string PostDistrictName { get; set; }
-        public double EastCoordinate { get; set; }
-        public double NorthCoordinate { get; set; }
-        public DateTime LocationUpdated { get; set; }
-        public string AccessAdddressExternalId { get; set; }
-        public string TownName { get; set; }
-        public string PlotExternalId { get; set; }
-        public string RoadExternalId { get; set; }
-        public string RoadName { get; set; }
+        public Guid Id { get; init; }
+        public DateTime Created { get; init; }
+        public DateTime Updated { get; init; }
+        public string MunicipalCode { get; init; }
+        public string Status { get; init; }
+        public string RoadCode { get; init; }
+        public string HouseNumber { get; init; }
+        public string PostDistrictCode { get; init; }
+        public string PostDistrictName { get; init; }
+        public double EastCoordinate { get; init; }
+        public double NorthCoordinate { get; init; }
+        public DateTime LocationUpdated { get; init; }
+        public string AccessAdddressExternalId { get; init; }
+        public string TownName { get; init; }
+        public string PlotExternalId { get; init; }
+        public string RoadExternalId { get; init; }
+        public string RoadName { get; init; }
+        public bool Deleted { get; init; }
     }
 }

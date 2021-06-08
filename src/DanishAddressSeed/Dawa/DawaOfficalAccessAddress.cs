@@ -19,33 +19,33 @@ namespace DanishAddressSeed.Dawa
     internal record DawaOfficalAccessAddress
     {
         [JsonProperty("oprettet")]
-        public DateTime Created { get; set; }
+        public DateTime Created { get; init; }
         [JsonProperty("ændret")]
-        public DateTime Updated { get; set; }
+        public DateTime Updated { get; init; }
         [JsonProperty("kommunekode")]
-        public string MunicipalCode { get; set; }
+        public string MunicipalCode { get; init; }
         [JsonProperty("status")]
-        public Status Status { get; set; }
+        public Status Status { get; init; }
         [JsonProperty("vejkode")]
-        public string RoadCode { get; set; }
+        public string RoadCode { get; init; }
         [JsonProperty("husnr")]
-        public string HouseNumber { get; set; }
+        public string HouseNumber { get; init; }
         [JsonProperty("postnr")]
-        public string PostDistrictCode { get; set; }
+        public string PostDistrictCode { get; init; }
         [JsonProperty("etrs89koordinat_øst")]
-        public double EastCoordinate { get; set; }
+        public double EastCoordinate { get; init; }
         [JsonProperty("etrs89koordinat_nord")]
-        public double NorthCoordinate { get; set; }
+        public double NorthCoordinate { get; init; }
         [JsonProperty("adressepunktændringsdato")]
-        public DateTime LocationUpdated { get; set; }
+        public DateTime LocationUpdated { get; init; }
         [JsonProperty("id")]
-        public string AccessAdddressExternalId { get; set; }
+        public string AccessAdddressExternalId { get; init; }
         [JsonProperty("supplerendebynavn")]
-        public string TownName { get; set; }
+        public string TownName { get; init; }
         [JsonProperty("matrikelnr")]
-        public string PlotExternalId { get; set; }
+        public string PlotExternalId { get; init; }
         [JsonProperty("navngivenvej_id")]
-        public string RoadExternalId { get; set; }
+        public string RoadExternalId { get; init; }
 
     }
 }

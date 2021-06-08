@@ -8,7 +8,7 @@ namespace DanishAddressSeed.SchemaMigration
         public override void Up()
         {
             Create.Index()
-                .OnTable("offical_access_address")
+                .OnTable("official_access_address")
                 .InSchema("location")
                 .OnColumn("access_address_external_id")
                 .Unique();
