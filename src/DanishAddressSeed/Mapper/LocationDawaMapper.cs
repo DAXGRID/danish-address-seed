@@ -6,11 +6,11 @@ namespace DanishAddressSeed.Mapper
 {
     internal class LocationDawaMapper : ILocationDawaMapper
     {
-        public OfficalAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
+        public OfficialAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
                                         string postDistrictName,
                                         string roadName, bool deleted = false)
         {
-            return new OfficalAccessAddress
+            return new OfficialAccessAddress
             {
                 AccessAdddressExternalId = dawaAddress.AccessAdddressExternalId,
                 Created = dawaAddress.Created,
@@ -33,9 +33,9 @@ namespace DanishAddressSeed.Mapper
             };
         }
 
-        public OfficalUnitAddress Map(DawaOfficalUnitAddress dawaAddress, bool deleted = false)
+        public OfficialUnitAddress Map(DawaOfficalUnitAddress dawaAddress, bool deleted = false)
         {
-            return new OfficalUnitAddress
+            return new OfficialUnitAddress
             {
                 Created = dawaAddress.Created,
                 FloorName = dawaAddress.FloorName,

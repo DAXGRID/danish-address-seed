@@ -2,7 +2,7 @@ using System;
 
 namespace DanishAddressSeed.Location
 {
-    internal record OfficalAccessAddress
+    internal record OfficialAccessAddress
     {
         public Guid Id { get; init; }
         public DateTime Created { get; init; }

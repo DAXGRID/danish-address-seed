@@ -18,7 +18,7 @@ namespace DanishAddressSeed.Location
             _logger = logger;
         }
 
-        public async Task InsertOfficalAccessAddresses(List<OfficalAccessAddress> addresses)
+        public async Task InsertOfficalAccessAddresses(List<OfficialAccessAddress> addresses)
         {
             using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
             await connection.OpenAsync();
@@ -112,7 +112,7 @@ namespace DanishAddressSeed.Location
             await transaction.CommitAsync();
         }
 
-        public async Task UpdateOfficalAccessAddress(OfficalAccessAddress address)
+        public async Task UpdateOfficalAccessAddress(OfficialAccessAddress address)
         {
             using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
             await connection.OpenAsync();
@@ -188,7 +188,7 @@ namespace DanishAddressSeed.Location
         }
 
 
-        public async Task InsertOfficialUnitAddresses(List<OfficalUnitAddress> addresses)
+        public async Task InsertOfficialUnitAddresses(List<OfficialUnitAddress> addresses)
         {
             using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
             await connection.OpenAsync();
@@ -270,7 +270,7 @@ namespace DanishAddressSeed.Location
             await transaction.CommitAsync();
         }
 
-        public async Task UpdateOfficialUnitAddress(OfficalUnitAddress address)
+        public async Task UpdateOfficialUnitAddress(OfficialUnitAddress address)
         {
             using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
             await connection.OpenAsync();
