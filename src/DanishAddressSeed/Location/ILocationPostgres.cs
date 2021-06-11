@@ -6,10 +6,10 @@ namespace DanishAddressSeed.Location
 {
     internal interface ILocationPostgres
     {
-        Task InsertOfficalAccessAddresses(List<OfficalAccessAddress> addresses);
-        Task UpdateOfficalAccessAddress(OfficalAccessAddress address);
-        Task InsertOfficialUnitAddresses(List<OfficalUnitAddress> addresses);
-        Task UpdateOfficialUnitAddress(OfficalUnitAddress address);
+        Task InsertOfficalAccessAddresses(List<OfficialAccessAddress> addresses);
+        Task UpdateOfficalAccessAddress(OfficialAccessAddress address);
+        Task InsertOfficialUnitAddresses(List<OfficialUnitAddress> addresses);
+        Task UpdateOfficialUnitAddress(OfficialUnitAddress address);
         Task InsertTransactionHistory(string tId, DateTime tTimestamp);
         Task<string> GetLatestTransactionHistory();
     }

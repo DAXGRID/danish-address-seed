@@ -51,7 +51,7 @@ namespace DanishAddressSeed.Dawa
             return result.TxId;
         }
 
-        public async Task BulkOfficialAccessAddress(string tId)
+        public async IAsyncEnumerable<OfficialAccessAddress> RetrieveAllOfficialAccessAddresses(string tId)
         {
             var postCodesTask = GetPostCodes(tId);
             var roadsTask = GetRoads(tId);
@@ -60,7 +60,6 @@ namespace DanishAddressSeed.Dawa
             var roads = await roadsTask;
 
             var accessAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adgangsadresse&ndjson&txid={tId}";
-            var count = 0;
 
             using var response = await _httpClient.GetAsync(accessAddressUrl, HttpCompletionOption.ResponseHeadersRead);
             using var stream = await response.Content.ReadAsStreamAsync();
@@ -70,7 +69,6 @@ namespace DanishAddressSeed.Dawa
                 SupportMultipleContent = true
             };
 
-            var addresses = new List<OfficalAccessAddress>();
             var serializer = new JsonSerializer();
             while (await reader.ReadAsync())
             {
@@ -90,28 +88,14 @@ namespace DanishAddressSeed.Dawa
                     postCodes.TryGetValue(address.PostDistrictCode, out var postDistrictName);
                     roads.TryGetValue(address.RoadExternalId, out var roadName);
 
-                    var mappedAddress = _locationDawaMapper.Map(address, postDistrictName, roadName);
-
-                    addresses.Add(mappedAddress);
-
-                    if (addresses.Count == 10000)
-                    {
-                        count += 10000;
-                        await _locationPostgres.InsertOfficalAccessAddresses(addresses);
-                        _logger.LogInformation($"Imported {nameof(DawaOfficalAccessAddress)}: {count}");
-
-                        addresses.Clear();
-                    }
+                    yield return _locationDawaMapper.Map(address, postDistrictName, roadName);
                 }
             }
-
-            await _locationPostgres.InsertOfficalAccessAddresses(addresses);
         }
 
-        public async Task BulkImportOfficialUnitAddress(string tId)
+        public async IAsyncEnumerable<OfficialUnitAddress> RetrieveAllOfficalUnitAddresses(string tId)
         {
             var unitAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adresse&ndjson&txid={tId}";
-            var count = 0;
 
             using var response = await _httpClient.GetAsync(unitAddressUrl, HttpCompletionOption.ResponseHeadersRead);
             using var stream = await response.Content.ReadAsStreamAsync();
@@ -121,7 +105,6 @@ namespace DanishAddressSeed.Dawa
                 SupportMultipleContent = true
             };
 
-            var addresses = new List<OfficalUnitAddress>();
             var serializer = new JsonSerializer();
             while (await reader.ReadAsync())
             {
@@ -139,25 +122,12 @@ namespace DanishAddressSeed.Dawa
                         continue;
                     }
 
-                    var mappedAddress = _locationDawaMapper.Map(unitAddress);
-
-                    addresses.Add(mappedAddress);
-
-                    if (addresses.Count == 10000)
-                    {
-                        count += 10000;
-                        await _locationPostgres.InsertOfficialUnitAddresses(addresses);
-                        _logger.LogInformation($"Imported {nameof(OfficalUnitAddress)}: {count}");
-
-                        addresses.Clear();
-                    }
+                    yield return _locationDawaMapper.Map(unitAddress);
                 }
             }
-
-            await _locationPostgres.InsertOfficialUnitAddresses(addresses);
         }
 
-        public async Task UpdateOfficalAccessAddress(string fromTransId, string toTransId)
+        public async IAsyncEnumerable<EntityChange<OfficialAccessAddress>> RetrieveChangesOfficalAccessAddress(string fromTransId, string toTransId)
         {
             var serializer = new JsonSerializer();
             var url = @$"{_dawaBasePath}/haendelser?entitet=adgangsadresse&txidfra={fromTransId}&txidtil={toTransId}";
@@ -177,46 +147,26 @@ namespace DanishAddressSeed.Dawa
                 SupportMultipleContent = true
             };
 
-            var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalAccessAddress>>>(reader);
+            var dawaChangeEvents = serializer.Deserialize<List<DawaEntityChange<DawaOfficalAccessAddress>>>(reader);
 
-            _logger.LogInformation($"Received '{result.Count()} OfficialAccessAddress changes");
-
-            foreach (var changeEvent in result)
+            foreach (var changeEvent in dawaChangeEvents)
             {
-                if (changeEvent.Operation == "update")
-                {
-                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
-                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
-                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName);
+                postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
+                roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
 
-                    await _locationPostgres.UpdateOfficalAccessAddress(mapped);
+                var mapped = changeEvent.Operation == "delete"
+                    ? _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName, true)
+                    : _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName);
 
-                }
-                else if (changeEvent.Operation == "insert")
+                yield return new EntityChange<OfficialAccessAddress>
                 {
-                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
-                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
-                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName);
-
-                    await _locationPostgres
-                        .InsertOfficalAccessAddresses(new List<OfficalAccessAddress> { mapped });
-                }
-                else if (changeEvent.Operation == "delete")
-                {
-                    postCodes.TryGetValue(changeEvent.Data.PostDistrictCode, out var postDistrictName);
-                    roads.TryGetValue(changeEvent.Data.RoadExternalId, out var roadName);
-                    var mapped = _locationDawaMapper.Map(changeEvent.Data, postDistrictName, roadName, true);
-
-                    await _locationPostgres.UpdateOfficalAccessAddress(mapped);
-                }
-                else
-                {
-                    throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
-                }
+                    Operation = changeEvent.Operation,
+                    Data = mapped
+                };
             }
         }
 
-        public async Task UpdateOfficialUnitAddress(string fromTransId, string toTransId)
+        public async IAsyncEnumerable<EntityChange<OfficialUnitAddress>> RetrieveChangesOfficialUnitAddress(string fromTransId, string toTransId)
         {
             var serializer = new JsonSerializer();
             var url = @$"{_dawaBasePath}/haendelser?entitet=adresse&txidfra={fromTransId}&txidtil={toTransId}";
@@ -227,34 +177,21 @@ namespace DanishAddressSeed.Dawa
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var result = serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
+            var dawaChangeEvents = serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
 
-            _logger.LogInformation($"Received '{result.Count()} OfficialUnitAddress changes");
-
-            foreach (var changeEvent in result)
+            foreach (var changeEvent in dawaChangeEvents)
             {
-                if (changeEvent.Operation == "update")
-                {
-                    var mapped = _locationDawaMapper.Map(changeEvent.Data);
-                    await _locationPostgres.UpdateOfficialUnitAddress(mapped);
-                }
-                else if (changeEvent.Operation == "insert")
-                {
-                    var mapped = _locationDawaMapper.Map(changeEvent.Data);
+                var mapped = changeEvent.Operation == "delete"
+                    ? _locationDawaMapper.Map(changeEvent.Data, true)
+                    : _locationDawaMapper.Map(changeEvent.Data);
 
-                    await _locationPostgres
-                        .InsertOfficialUnitAddresses(new List<OfficalUnitAddress> { mapped });
-                }
-                else if (changeEvent.Operation == "delete")
+                yield return new EntityChange<OfficialUnitAddress>
                 {
-                    var mapped = _locationDawaMapper.Map(changeEvent.Data, true);
-                    await _locationPostgres.UpdateOfficialUnitAddress(mapped);
-                }
-                else
-                {
-                    throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for UnitAddress");
-                }
+                    Operation = changeEvent.Operation,
+                    Data = mapped
+                };
             }
+
         }
 
         private async Task<Dictionary<string, string>> GetRoads(string tId)
