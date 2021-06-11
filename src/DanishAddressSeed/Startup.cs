@@ -12,13 +12,13 @@ namespace DanishAddressSeed
     {
         private readonly ILogger<Startup> _logger;
         private readonly IMigrationRunner _migrationRunner;
-        private readonly IClient _client;
+        private readonly IDawaClient _client;
         private readonly ILocationPostgres _locationPostgres;
 
         public Startup(
             ILogger<Startup> logger,
             IMigrationRunner migrationRunner,
-            IClient client,
+            IDawaClient client,
             ILocationPostgres locationPostgres = null)
         {
             _logger = logger;

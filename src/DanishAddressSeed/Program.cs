@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using DanishAddressSeed.Dawa;
 using DanishAddressSeed.Location;
@@ -10,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using Typesense;
+using Typesense.Setup;
 
 namespace DanishAddressSeed
 {
@@ -48,10 +51,23 @@ namespace DanishAddressSeed
                     logging.AddSerilog(logger, true);
                 })
                 .AddSingleton<Startup>()
-                .AddTransient<IClient, Client>()
+                .AddTransient<IDawaClient, DawaClient>()
                 .AddTransient<ILocationPostgres, LocationPostgres>()
                 .AddTransient<ILocationDawaMapper, LocationDawaMapper>()
                 .AddHttpClient()
+                .AddTypesenseClient(config =>
+                {
+                    config.ApiKey = "changeMe!";
+                    config.Nodes = new List<Node>
+                    {
+                        new Node
+                        {
+                            Host = "localhost",
+                            Port = "8108",
+                            Protocol = "http"
+                        }
+                    };
+                })
                 .AddFluentMigratorCore()
                 .ConfigureRunner(rb => rb
                                  .AddPostgres()

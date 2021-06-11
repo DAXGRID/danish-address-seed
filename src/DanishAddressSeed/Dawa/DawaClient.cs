@@ -11,17 +11,17 @@ using Newtonsoft.Json;
 
 namespace DanishAddressSeed.Dawa
 {
-    internal class Client : IClient
+    internal class DawaClient : IDawaClient
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger<Client> _logger;
+        private readonly ILogger<DawaClient> _logger;
         private readonly ILocationPostgres _locationPostgres;
         private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering";
         private readonly ILocationDawaMapper _locationDawaMapper;
 
-        public Client(
+        public DawaClient(
             HttpClient httpClient,
-            ILogger<Client> logger,
+            ILogger<DawaClient> logger,
             ILocationPostgres locationPostgres,
             ILocationDawaMapper locationDawaMapper)
         {
