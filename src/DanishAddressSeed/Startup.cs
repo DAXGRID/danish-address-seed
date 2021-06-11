@@ -64,7 +64,6 @@ namespace DanishAddressSeed
                 {
                     case "update":
                         await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
-
                         break;
                     case "insert":
                         await _locationPostgres.InsertOfficalAccessAddresses(new List<OfficialAccessAddress> { changeEvent.Data });
@@ -75,7 +74,6 @@ namespace DanishAddressSeed
                     default:
                         throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
                 }
-
             }
 
             _logger.LogInformation($"Created/Updated/Deleted '{count} OfficialAccessAddresses");
@@ -114,9 +112,9 @@ namespace DanishAddressSeed
             {
                 accessAddresses.Add(accessAddress);
 
-                if (accessAddresses.Count == 10000)
+                if (accessAddresses.Count == 5000)
                 {
-                    count += 10000;
+                    count += 5000;
                     _logger.LogInformation($"Imported: {count}");
                     await _locationPostgres.InsertOfficalAccessAddresses(accessAddresses);
                     accessAddresses.Clear();
@@ -134,9 +132,9 @@ namespace DanishAddressSeed
             {
                 unitAddresses.Add(unitAddress);
 
-                if (unitAddresses.Count == 10000)
+                if (unitAddresses.Count == 5000)
                 {
-                    count += 10000;
+                    count += 5000;
                     _logger.LogInformation($"Imported: {count}");
                     await _locationPostgres.InsertOfficialUnitAddresses(unitAddresses);
                     unitAddresses.Clear();
