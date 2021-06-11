@@ -55,16 +55,16 @@ namespace DanishAddressSeed
                 .AddTransient<ILocationPostgres, LocationPostgres>()
                 .AddTransient<ILocationDawaMapper, LocationDawaMapper>()
                 .AddHttpClient()
-                .AddTypesenseClient(config =>
+                .AddTypesenseClient(c =>
                 {
-                    config.ApiKey = "changeMe!";
-                    config.Nodes = new List<Node>
+                    c.ApiKey = "changeMe!";
+                    c.Nodes = new List<Node>
                     {
                         new Node
                         {
-                            Host = "10.98.195.176",
-                            Port = "80",
-                            Protocol = "http"
+                            Host = config.GetValue<string>("TYPESENSE_HOST"),
+                            Port = config.GetValue<string>("TYPESENSE_PORT"),
+                            Protocol = config.GetValue<string>("TYPESENSE_PROTOCOL"),
                         }
                     };
                 })
