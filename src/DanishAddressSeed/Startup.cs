@@ -71,13 +71,18 @@ namespace DanishAddressSeed
                 {
                     case "update":
                         await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
+                        await _typesenseClient.UpdateDocument<OfficialAccessAddress>(
+                            "Addresses", changeEvent.Data.Id.ToString(), changeEvent.Data);
                         break;
                     case "insert":
                         await _locationPostgres.InsertOfficalAccessAddresses(
                             new List<OfficialAccessAddress> { changeEvent.Data });
+                        await _typesenseClient.CreateDocument<OfficialAccessAddress>("Addresses", changeEvent.Data);
                         break;
                     case "delete":
                         await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
+                        await _typesenseClient.DeleteDocument<OfficialAccessAddress>(
+                            "Addresses", changeEvent.Data.Id.ToString());
                         break;
                     default:
                         throw new Exception(
