@@ -62,8 +62,8 @@ namespace DanishAddressSeed
                     {
                         new Node
                         {
-                            Host = "localhost",
-                            Port = "8108",
+                            Host = "10.98.195.176",
+                            Port = "80",
                             Protocol = "http"
                         }
                     };
