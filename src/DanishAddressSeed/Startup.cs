@@ -5,6 +5,7 @@ using DanishAddressSeed.Dawa;
 using DanishAddressSeed.Location;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Logging;
+using Typesense;
 
 namespace DanishAddressSeed
 {
@@ -12,19 +13,23 @@ namespace DanishAddressSeed
     {
         private readonly ILogger<Startup> _logger;
         private readonly IMigrationRunner _migrationRunner;
-        private readonly IClient _client;
+        private readonly IDawaClient _client;
         private readonly ILocationPostgres _locationPostgres;
+        private readonly ITypesenseClient _typesenseClient;
+        private const Int16 ImportBatchCount = 500;
 
         public Startup(
             ILogger<Startup> logger,
             IMigrationRunner migrationRunner,
-            IClient client,
-            ILocationPostgres locationPostgres = null)
+            IDawaClient client,
+            ILocationPostgres locationPostgres = null,
+            ITypesenseClient typesenseClient = null)
         {
             _logger = logger;
             _migrationRunner = migrationRunner;
             _client = client;
             _locationPostgres = locationPostgres;
+            _typesenseClient = typesenseClient;
         }
 
         public async Task Start()
@@ -38,12 +43,14 @@ namespace DanishAddressSeed
             if (string.IsNullOrEmpty(lastTransactionId))
             {
                 _logger.LogInformation("First time running, doing full bulk import");
+                await SetupTypesense();
                 await BulkInsertAccessAddresses(newTransactionId);
                 await BulkInsertUnitAddresses(newTransactionId);
             }
             else
             {
-                _logger.LogInformation($"Getting latest changes using existing tid {lastTransactionId} and new tid {newTransactionId}");
+                _logger.LogInformation(
+                    $"Getting latest changes using existing tid {lastTransactionId} and new tid {newTransactionId}");
                 await UpdateAccessAddresses(lastTransactionId, newTransactionId);
                 await UpdateUnitAddresses(lastTransactionId, newTransactionId);
             }
@@ -64,15 +71,22 @@ namespace DanishAddressSeed
                 {
                     case "update":
                         await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
+                        await _typesenseClient.UpdateDocument<OfficialAccessAddress>(
+                            "Addresses", changeEvent.Data.Id.ToString(), changeEvent.Data);
                         break;
                     case "insert":
-                        await _locationPostgres.InsertOfficalAccessAddresses(new List<OfficialAccessAddress> { changeEvent.Data });
+                        await _locationPostgres.InsertOfficalAccessAddresses(
+                            new List<OfficialAccessAddress> { changeEvent.Data });
+                        await _typesenseClient.CreateDocument<OfficialAccessAddress>("Addresses", changeEvent.Data);
                         break;
                     case "delete":
                         await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
+                        await _typesenseClient.DeleteDocument<OfficialAccessAddress>(
+                            "Addresses", changeEvent.Data.Id.ToString());
                         break;
                     default:
-                        throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
+                        throw new Exception(
+                            $"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
                 }
             }
 
@@ -91,13 +105,15 @@ namespace DanishAddressSeed
                         await _locationPostgres.UpdateOfficialUnitAddress(changeEvent.Data);
                         break;
                     case "insert":
-                        await _locationPostgres.InsertOfficialUnitAddresses(new List<OfficialUnitAddress> { changeEvent.Data });
+                        await _locationPostgres.InsertOfficialUnitAddresses(
+                            new List<OfficialUnitAddress> { changeEvent.Data });
                         break;
                     case "delete":
                         await _locationPostgres.UpdateOfficialUnitAddress(changeEvent.Data);
                         break;
                     default:
-                        throw new Exception($"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
+                        throw new Exception(
+                            $"Operation '{changeEvent.Operation}' is not implemented for AccessAddress");
                 }
             }
 
@@ -106,42 +122,75 @@ namespace DanishAddressSeed
 
         private async Task BulkInsertAccessAddresses(string newTransactionId)
         {
-            var accessAddresses = new List<OfficialAccessAddress>();
+            var addresses = new List<OfficialAccessAddress>();
             var count = 0;
             await foreach (var accessAddress in _client.RetrieveAllOfficialAccessAddresses(newTransactionId))
             {
-                accessAddresses.Add(accessAddress);
+                addresses.Add(accessAddress);
 
-                if (accessAddresses.Count == 5000)
+                if (addresses.Count == ImportBatchCount)
                 {
-                    count += 5000;
+                    count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
-                    await _locationPostgres.InsertOfficalAccessAddresses(accessAddresses);
-                    accessAddresses.Clear();
+                    var postgresTask = _locationPostgres.InsertOfficalAccessAddresses(addresses);
+                    var typesenseTask = _typesenseClient.ImportDocuments<OfficialAccessAddress>(
+                        "Addresses", addresses, ImportBatchCount, ImportType.Upsert);
+
+                    Task.WaitAll(postgresTask, typesenseTask);
+                    addresses.Clear();
                 }
             }
 
-            await _locationPostgres.InsertOfficalAccessAddresses(accessAddresses);
+            await _locationPostgres.InsertOfficalAccessAddresses(addresses);
+            await _typesenseClient.ImportDocuments<OfficialAccessAddress>(
+                "Addresses", addresses, addresses.Count, ImportType.Upsert);
         }
 
         private async Task BulkInsertUnitAddresses(string newTransactionId)
         {
-            var unitAddresses = new List<OfficialUnitAddress>();
+            var addresses = new List<OfficialUnitAddress>();
             var count = 0;
             await foreach (var unitAddress in _client.RetrieveAllOfficalUnitAddresses(newTransactionId))
             {
-                unitAddresses.Add(unitAddress);
+                addresses.Add(unitAddress);
 
-                if (unitAddresses.Count == 5000)
+                if (addresses.Count == ImportBatchCount)
                 {
-                    count += 5000;
+                    count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
-                    await _locationPostgres.InsertOfficialUnitAddresses(unitAddresses);
-                    unitAddresses.Clear();
+                    var postgresTask = _locationPostgres.InsertOfficialUnitAddresses(addresses);
+                    var typesenseTask = _typesenseClient.ImportDocuments<OfficialUnitAddress>(
+                        "Addresses", addresses, ImportBatchCount, ImportType.Upsert);
+
+                    Task.WaitAll(postgresTask, typesenseTask);
+                    addresses.Clear();
                 }
             }
 
-            await _locationPostgres.InsertOfficialUnitAddresses(unitAddresses);
+            await _locationPostgres.InsertOfficialUnitAddresses(addresses);
+            await _typesenseClient.ImportDocuments<OfficialUnitAddress>(
+                "Addresses", addresses, addresses.Count, ImportType.Upsert);
+        }
+
+        private async Task SetupTypesense()
+        {
+            var schema = new Schema
+            {
+                Name = "Addresses",
+                Fields = new List<Field>
+                {
+                    new Field("id", "string", false),
+                    new Field("roadName", "string", false),
+                    new Field("houseNumber", "string", false),
+                    new Field("townName", "string", false),
+                    new Field("postDistrictCode", "string", false),
+                    new Field("postDistrictName", "string", false),
+                    new Field("eastCoordinate", "string", false),
+                    new Field("northCoordinate", "string", false),
+                },
+            };
+
+            await _typesenseClient.CreateCollection(schema);
         }
     }
 }

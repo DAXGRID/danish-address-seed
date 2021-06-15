@@ -4,7 +4,7 @@ using DanishAddressSeed.Location;
 
 namespace DanishAddressSeed.Dawa
 {
-    internal interface IClient
+    internal interface IDawaClient
     {
         IAsyncEnumerable<OfficialAccessAddress> RetrieveAllOfficialAccessAddresses(string tId);
         IAsyncEnumerable<OfficialUnitAddress> RetrieveAllOfficalUnitAddresses(string tId);
