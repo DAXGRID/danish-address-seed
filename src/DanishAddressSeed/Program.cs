@@ -57,7 +57,7 @@ namespace DanishAddressSeed
                 .AddHttpClient()
                 .AddTypesenseClient(c =>
                 {
-                    c.ApiKey = "changeMe!";
+                    c.ApiKey = config.GetValue<string>("TYPESENSE_APIKEY");
                     c.Nodes = new List<Node>
                     {
                         new Node
