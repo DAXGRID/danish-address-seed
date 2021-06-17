@@ -98,7 +98,7 @@ namespace DanishAddressSeed
 
                         // We do an update here where the deleted is set
                         await _locationPostgres.UpdateOfficalAccessAddress(address);
-                        // We use the primary id from the database since we don't have it on the address objekt
+                        // We use the primary id from the database since we don't have it on the address object
                         await _typesenseClient.DeleteDocument<OfficialAccessAddress>("Addresses", address.Id.ToString());
                         break;
                     default:
@@ -150,11 +150,15 @@ namespace DanishAddressSeed
                 {
                     count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
-                    var postgresTask = _locationPostgres.InsertOfficalAccessAddresses(addresses);
-                    var typesenseTask = _typesenseClient.ImportDocuments<OfficialAccessAddress>(
+                    await _locationPostgres.InsertOfficalAccessAddresses(addresses);
+                    var typesense = await _typesenseClient.ImportDocuments<OfficialAccessAddress>(
                         "Addresses", addresses, ImportBatchCount, ImportType.Upsert);
 
-                    Task.WaitAll(postgresTask, typesenseTask);
+                    if (typesense.Count == 0)
+                    {
+                        throw new Exception("Something bad occured");
+                    }
+
                     addresses.Clear();
                 }
             }
@@ -176,18 +180,12 @@ namespace DanishAddressSeed
                 {
                     count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
-                    var postgresTask = _locationPostgres.InsertOfficialUnitAddresses(addresses);
-                    var typesenseTask = _typesenseClient.ImportDocuments<OfficialUnitAddress>(
-                        "Addresses", addresses, ImportBatchCount, ImportType.Upsert);
-
-                    Task.WaitAll(postgresTask, typesenseTask);
+                    await _locationPostgres.InsertOfficialUnitAddresses(addresses);
                     addresses.Clear();
                 }
             }
 
             await _locationPostgres.InsertOfficialUnitAddresses(addresses);
-            await _typesenseClient.ImportDocuments<OfficialUnitAddress>(
-                "Addresses", addresses, addresses.Count, ImportType.Upsert);
         }
 
         private async Task SetupTypesense()
