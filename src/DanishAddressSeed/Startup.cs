@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using DanishAddressSeed.Dawa;
 using DanishAddressSeed.Location;
+using DanishAddressSeed.Mapper;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Logging;
 using Typesense;
@@ -16,6 +18,7 @@ namespace DanishAddressSeed
         private readonly IDawaClient _client;
         private readonly ILocationPostgres _locationPostgres;
         private readonly ITypesenseClient _typesenseClient;
+        private readonly ILocationDawaMapper _locationMapper;
         private const Int16 ImportBatchCount = 500;
 
         public Startup(
@@ -23,13 +26,15 @@ namespace DanishAddressSeed
             IMigrationRunner migrationRunner,
             IDawaClient client,
             ILocationPostgres locationPostgres = null,
-            ITypesenseClient typesenseClient = null)
+            ITypesenseClient typesenseClient = null,
+            ILocationDawaMapper locationMapper = null)
         {
             _logger = logger;
             _migrationRunner = migrationRunner;
             _client = client;
             _locationPostgres = locationPostgres;
             _typesenseClient = typesenseClient;
+            _locationMapper = locationMapper;
         }
 
         public async Task Start()
@@ -49,8 +54,7 @@ namespace DanishAddressSeed
             }
             else
             {
-                _logger.LogInformation(
-                    $"Getting latest changes using existing tid {lastTransactionId} and new tid {newTransactionId}");
+                _logger.LogInformation($"Getting latest changes using existing tid {lastTransactionId} and new tid {newTransactionId}");
                 await UpdateAccessAddresses(lastTransactionId, newTransactionId);
                 await UpdateUnitAddresses(lastTransactionId, newTransactionId);
             }
@@ -73,33 +77,30 @@ namespace DanishAddressSeed
                     case "update":
                         var id = await _locationPostgres.GetAccessAddressOnExternalId(changeEvent.Data.AccessAdddressExternalId);
                         if (Guid.Empty == id)
-                        {
                             throw new Exception("Id cannot be empty on an access address update");
-                        }
+
                         // We update the id here to make it match the one in the database
                         address = address with { Id = id };
+
                         await _locationPostgres.UpdateOfficalAccessAddress(address);
-                        await _typesenseClient.UpdateDocument<OfficialAccessAddress>(
-                            "Addresses", address.Id.ToString(), address);
+                        await _typesenseClient.UpdateDocument<TypesenseOfficalAccessAddress>("Addresses", address.Id.ToString(), _locationMapper.Map(address));
                         break;
                     case "insert":
-                        await _locationPostgres.InsertOfficalAccessAddresses(
-                            new List<OfficialAccessAddress> { address });
-                        await _typesenseClient.CreateDocument<OfficialAccessAddress>("Addresses", address);
+                        await _locationPostgres.InsertOfficalAccessAddresses(new List<OfficialAccessAddress> { address });
+                        await _typesenseClient.CreateDocument<TypesenseOfficalAccessAddress>("Addresses", _locationMapper.Map(address));
                         break;
                     case "delete":
                         id = await _locationPostgres.GetAccessAddressOnExternalId(changeEvent.Data.AccessAdddressExternalId);
                         if (Guid.Empty == id)
-                        {
                             throw new Exception("Id cannot be empty on an access address update");
-                        }
+
                         // We update the id here to make it match the one in the database
                         address = address with { Id = id };
 
                         // We do an update here where the deleted is set
                         await _locationPostgres.UpdateOfficalAccessAddress(address);
-                        // We use the primary id from the database since we don't have it on the address objekt
-                        await _typesenseClient.DeleteDocument<OfficialAccessAddress>("Addresses", address.Id.ToString());
+                        // We use the primary id from the database since we don't have it on the address object
+                        await _typesenseClient.DeleteDocument<TypesenseOfficalAccessAddress>("Addresses", address.Id.ToString());
                         break;
                     default:
                         throw new Exception(
@@ -151,8 +152,12 @@ namespace DanishAddressSeed
                     count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
                     var postgresTask = _locationPostgres.InsertOfficalAccessAddresses(addresses);
-                    var typesenseTask = _typesenseClient.ImportDocuments<OfficialAccessAddress>(
-                        "Addresses", addresses, ImportBatchCount, ImportType.Upsert);
+
+                    var typesenseTask = _typesenseClient.ImportDocuments<TypesenseOfficalAccessAddress>(
+                        "Addresses",
+                        addresses.Select(x => _locationMapper.Map(x)).ToList(),
+                        ImportBatchCount,
+                        ImportType.Create);
 
                     Task.WaitAll(postgresTask, typesenseTask);
                     addresses.Clear();
@@ -160,8 +165,11 @@ namespace DanishAddressSeed
             }
 
             await _locationPostgres.InsertOfficalAccessAddresses(addresses);
-            await _typesenseClient.ImportDocuments<OfficialAccessAddress>(
-                "Addresses", addresses, addresses.Count, ImportType.Upsert);
+            await _typesenseClient.ImportDocuments<TypesenseOfficalAccessAddress>(
+                "Addresses",
+                addresses.Select(x => _locationMapper.Map(x)).ToList(),
+                addresses.Count,
+                ImportType.Create);
         }
 
         private async Task BulkInsertUnitAddresses(string newTransactionId)
@@ -176,33 +184,34 @@ namespace DanishAddressSeed
                 {
                     count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
-                    var postgresTask = _locationPostgres.InsertOfficialUnitAddresses(addresses);
-                    var typesenseTask = _typesenseClient.ImportDocuments<OfficialUnitAddress>(
-                        "Addresses", addresses, ImportBatchCount, ImportType.Upsert);
-
-                    Task.WaitAll(postgresTask, typesenseTask);
+                    await _locationPostgres.InsertOfficialUnitAddresses(addresses);
                     addresses.Clear();
                 }
             }
 
             await _locationPostgres.InsertOfficialUnitAddresses(addresses);
-            await _typesenseClient.ImportDocuments<OfficialUnitAddress>(
-                "Addresses", addresses, addresses.Count, ImportType.Upsert);
         }
 
         private async Task SetupTypesense()
         {
+            var collections = await _typesenseClient.RetrieveCollections();
+            // We do this to make sure that the state is clean on full bulk import
+            foreach (var collection in collections)
+            {
+                await _typesenseClient.DeleteCollection(collection.Name);
+            }
+
             var schema = new Schema
             {
                 Name = "Addresses",
                 Fields = new List<Field>
                 {
                     new Field("id", "string", false),
-                    new Field("roadName", "string", false),
-                    new Field("houseNumber", "string", false),
-                    new Field("townName", "string", false),
-                    new Field("postDistrictCode", "string", false),
-                    new Field("postDistrictName", "string", false),
+                    new Field("roadName", "string", false, true),
+                    new Field("houseNumber", "string", false, true),
+                    new Field("townName", "string", false, true),
+                    new Field("postDistrictCode", "string", false, true),
+                    new Field("postDistrictName", "string", false, true),
                     new Field("eastCoordinate", "string", false),
                     new Field("northCoordinate", "string", false),
                 },

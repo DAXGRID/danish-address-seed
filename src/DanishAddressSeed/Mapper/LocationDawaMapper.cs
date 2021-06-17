@@ -49,6 +49,21 @@ namespace DanishAddressSeed.Mapper
             };
         }
 
+        public TypesenseOfficalAccessAddress Map(OfficialAccessAddress address)
+        {
+            return new TypesenseOfficalAccessAddress
+            {
+                EastCoordinate = address.EastCoordinate.ToString(),
+                HouseNumber = address.HouseNumber,
+                Id = address.Id.ToString(),
+                NorthCoordinate = address.NorthCoordinate.ToString(),
+                PostDistrictCode = address.PostDistrictCode,
+                PostDistrictName = address.PostDistrictName,
+                RoadName = address.RoadName,
+                TownName = address.TownName
+            };
+        }
+
         private string GetStatusStringRepresentation(Status status)
         {
             switch (status)
