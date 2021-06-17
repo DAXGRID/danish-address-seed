@@ -71,7 +71,7 @@ namespace DanishAddressSeed.Location
                     Transaction = transaction
                 };
 
-                command.Parameters.AddWithValue("@id", Guid.NewGuid());
+                command.Parameters.AddWithValue("@id", address.Id);
                 command.Parameters.AddWithValue("@east", address.EastCoordinate);
                 command.Parameters.AddWithValue("@north", address.NorthCoordinate);
                 command.Parameters.AddWithValue("@status", address.Status);
@@ -248,7 +248,7 @@ namespace DanishAddressSeed.Location
                     Transaction = transaction
                 };
 
-                insertUnitAddressCmd.Parameters.AddWithValue("@id", Guid.NewGuid());
+                insertUnitAddressCmd.Parameters.AddWithValue("@id", address.Id);
                 insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", accessAddressId);
                 insertUnitAddressCmd.Parameters.AddWithValue("@status", address.Status);
                 insertUnitAddressCmd.Parameters.AddWithValue(
