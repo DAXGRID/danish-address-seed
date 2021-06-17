@@ -15,19 +15,16 @@ namespace DanishAddressSeed.Dawa
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<DawaClient> _logger;
-        private readonly ILocationPostgres _locationPostgres;
         private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering";
         private readonly ILocationDawaMapper _locationDawaMapper;
 
         public DawaClient(
             HttpClient httpClient,
             ILogger<DawaClient> logger,
-            ILocationPostgres locationPostgres,
             ILocationDawaMapper locationDawaMapper)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _locationPostgres = locationPostgres;
             _locationDawaMapper = locationDawaMapper;
         }
 

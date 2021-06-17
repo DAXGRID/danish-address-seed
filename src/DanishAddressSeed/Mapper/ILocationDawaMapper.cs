@@ -10,5 +10,6 @@ namespace DanishAddressSeed.Mapper
                                  string roadName,
                                  bool deleted = false);
         OfficialUnitAddress Map(DawaOfficalUnitAddress dawaAddress, bool deleted = false);
+        TypesenseOfficalAccessAddress Map(OfficialAccessAddress address);
     }
 }
