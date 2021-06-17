@@ -122,7 +122,6 @@ namespace DanishAddressSeed.Location
             var query = @"
                 UPDATE location.official_access_address
                 SET
-                    id = @id,
                     coord = ST_SetSRID(ST_MakePoint(@east, @north), 25832),
                     status = @status,
                     house_number = @house_number,
@@ -147,7 +146,6 @@ namespace DanishAddressSeed.Location
                 Transaction = transaction
             };
 
-            command.Parameters.AddWithValue("@id", Guid.NewGuid());
             command.Parameters.AddWithValue("@east", address.EastCoordinate);
             command.Parameters.AddWithValue("@north", address.NorthCoordinate);
             command.Parameters.AddWithValue("@status", address.Status);
@@ -284,7 +282,6 @@ namespace DanishAddressSeed.Location
             var insertUnitAddressQuery = @"
                 UPDATE location.official_unit_address
                 SET
-                    id = @id,
                     access_address_id = @access_address_id,
                     status = @status,
                     floor_name = @floor_name,
@@ -321,7 +318,6 @@ namespace DanishAddressSeed.Location
                 Transaction = transaction
             };
 
-            insertUnitAddressCmd.Parameters.AddWithValue("@id", Guid.NewGuid());
             insertUnitAddressCmd.Parameters.AddWithValue("@access_address_id", accessAddressId);
             insertUnitAddressCmd.Parameters.AddWithValue("@status", address.Status);
             insertUnitAddressCmd.Parameters.AddWithValue(
@@ -341,6 +337,25 @@ namespace DanishAddressSeed.Location
             await transaction.CommitAsync();
         }
 
+        public async Task<Guid> GetAccessAddressOnExternalId(string externalId)
+        {
+            using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
+            await connection.OpenAsync();
+
+            var query = @"
+              SELECT id
+              FROM location.official_access_address
+              WHERE access_address_external_id = @access_address_external_id
+            ";
+
+            using var cmd = new NpgsqlCommand(query, connection);
+            cmd.Parameters.AddWithValue("@access_address_external_id", externalId);
+
+            var result = await cmd.ExecuteScalarAsync();
+
+            return result is not null ? (Guid)result : Guid.Empty;
+        }
+
         public async Task<string> GetLatestTransactionHistory()
         {
             using var connection = new NpgsqlConnection(_config.GetValue<string>("CONNECTION_STRING"));
@@ -356,14 +371,7 @@ namespace DanishAddressSeed.Location
 
             var result = await cmd.ExecuteScalarAsync();
 
-            if (result is not null)
-            {
-                return (string)result;
-            }
-            else
-            {
-                return string.Empty;
-            }
+            return result is not null ? (string)result : string.Empty;
         }
 
         public async Task InsertTransactionHistory(string tId, DateTime tTimestamp)

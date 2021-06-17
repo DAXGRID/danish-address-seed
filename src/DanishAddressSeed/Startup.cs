@@ -67,22 +67,39 @@ namespace DanishAddressSeed
             await foreach (var changeEvent in _client.RetrieveChangesOfficalAccessAddress(fromTransId, toTransId))
             {
                 count++;
+                var address = changeEvent.Data;
                 switch (changeEvent.Operation)
                 {
                     case "update":
-                        await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
+                        var id = await _locationPostgres.GetAccessAddressOnExternalId(changeEvent.Data.AccessAdddressExternalId);
+                        if (Guid.Empty == id)
+                        {
+                            throw new Exception("Id cannot be empty on an access address update");
+                        }
+                        // We update the id here to make it match the one in the database
+                        address = address with { Id = id };
+                        await _locationPostgres.UpdateOfficalAccessAddress(address);
                         await _typesenseClient.UpdateDocument<OfficialAccessAddress>(
-                            "Addresses", changeEvent.Data.Id.ToString(), changeEvent.Data);
+                            "Addresses", address.Id.ToString(), address);
                         break;
                     case "insert":
                         await _locationPostgres.InsertOfficalAccessAddresses(
-                            new List<OfficialAccessAddress> { changeEvent.Data });
-                        await _typesenseClient.CreateDocument<OfficialAccessAddress>("Addresses", changeEvent.Data);
+                            new List<OfficialAccessAddress> { address });
+                        await _typesenseClient.CreateDocument<OfficialAccessAddress>("Addresses", address);
                         break;
                     case "delete":
-                        await _locationPostgres.UpdateOfficalAccessAddress(changeEvent.Data);
-                        await _typesenseClient.DeleteDocument<OfficialAccessAddress>(
-                            "Addresses", changeEvent.Data.Id.ToString());
+                        id = await _locationPostgres.GetAccessAddressOnExternalId(changeEvent.Data.AccessAdddressExternalId);
+                        if (Guid.Empty == id)
+                        {
+                            throw new Exception("Id cannot be empty on an access address update");
+                        }
+                        // We update the id here to make it match the one in the database
+                        address = address with { Id = id };
+
+                        // We do an update here where the deleted is set
+                        await _locationPostgres.UpdateOfficalAccessAddress(address);
+                        // We use the primary id from the database since we don't have it on the address objekt
+                        await _typesenseClient.DeleteDocument<OfficialAccessAddress>("Addresses", address.Id.ToString());
                         break;
                     default:
                         throw new Exception(
@@ -109,6 +126,7 @@ namespace DanishAddressSeed
                             new List<OfficialUnitAddress> { changeEvent.Data });
                         break;
                     case "delete":
+                        // We do an update here where the deleted is set
                         await _locationPostgres.UpdateOfficialUnitAddress(changeEvent.Data);
                         break;
                     default:
