@@ -18,7 +18,7 @@ namespace DanishAddressSeed
         private readonly IDawaClient _client;
         private readonly ILocationPostgres _locationPostgres;
         private readonly ITypesenseClient _typesenseClient;
-        private readonly ILocationDawaMapper _locationMapper;
+        private readonly ILocationMapper _locationMapper;
         private const Int16 ImportBatchCount = 500;
 
         public Startup(
@@ -27,7 +27,7 @@ namespace DanishAddressSeed
             IDawaClient client,
             ILocationPostgres locationPostgres = null,
             ITypesenseClient typesenseClient = null,
-            ILocationDawaMapper locationMapper = null)
+            ILocationMapper locationMapper = null)
         {
             _logger = logger;
             _migrationRunner = migrationRunner;
@@ -207,8 +207,7 @@ namespace DanishAddressSeed
                 Fields = new List<Field>
                 {
                     new Field("id", "string", false),
-                    new Field("roadName", "string", false, true),
-                    new Field("houseNumber", "string", false, true),
+                    new Field("roadNameHouseNumber", "string", false),
                     new Field("townName", "string", false, true),
                     new Field("postDistrictCode", "string", false, true),
                     new Field("postDistrictName", "string", false, true),

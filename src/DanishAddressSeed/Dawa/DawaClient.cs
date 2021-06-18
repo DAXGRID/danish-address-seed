@@ -16,12 +16,12 @@ namespace DanishAddressSeed.Dawa
         private readonly HttpClient _httpClient;
         private readonly ILogger<DawaClient> _logger;
         private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering";
-        private readonly ILocationDawaMapper _locationDawaMapper;
+        private readonly ILocationMapper _locationDawaMapper;
 
         public DawaClient(
             HttpClient httpClient,
             ILogger<DawaClient> logger,
-            ILocationDawaMapper locationDawaMapper)
+            ILocationMapper locationDawaMapper)
         {
             _httpClient = httpClient;
             _logger = logger;

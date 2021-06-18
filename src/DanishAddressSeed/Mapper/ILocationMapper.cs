@@ -3,7 +3,7 @@ using DanishAddressSeed.Location;
 
 namespace DanishAddressSeed.Mapper
 {
-    internal interface ILocationDawaMapper
+    internal interface ILocationMapper
     {
         OfficialAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
                                  string postDistrictName,
