@@ -53,7 +53,7 @@ namespace DanishAddressSeed
                 .AddSingleton<Startup>()
                 .AddTransient<IDawaClient, DawaClient>()
                 .AddTransient<ILocationPostgres, LocationPostgres>()
-                .AddTransient<ILocationDawaMapper, LocationDawaMapper>()
+                .AddTransient<ILocationMapper, LocationMapper>()
                 .AddHttpClient()
                 .AddTypesenseClient(c =>
                 {

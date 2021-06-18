@@ -4,7 +4,7 @@ using DanishAddressSeed.Location;
 
 namespace DanishAddressSeed.Mapper
 {
-    internal class LocationDawaMapper : ILocationDawaMapper
+    internal class LocationMapper : ILocationMapper
     {
         public OfficialAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
                                         string postDistrictName,
@@ -54,12 +54,11 @@ namespace DanishAddressSeed.Mapper
             return new TypesenseOfficalAccessAddress
             {
                 EastCoordinate = address.EastCoordinate.ToString(),
-                HouseNumber = address.HouseNumber,
                 Id = address.Id.ToString(),
                 NorthCoordinate = address.NorthCoordinate.ToString(),
                 PostDistrictCode = address.PostDistrictCode,
                 PostDistrictName = address.PostDistrictName,
-                RoadName = address.RoadName,
+                RoadNameHouseNumber = $"{address.RoadName} {address.HouseNumber}",
                 TownName = address.TownName
             };
         }
