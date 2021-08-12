@@ -11,14 +11,12 @@ namespace DanishAddressSeed.SchemaMigration
             Create.Index()
                 .OnTable("official_unit_address")
                 .InSchema("location")
-                .OnColumn("access_address_id")
-                .Unique();
+                .OnColumn("access_address_id");
 
             Create.Index()
                 .OnTable("official_unit_address")
                 .InSchema("location")
-                .OnColumn("access_address_external_id")
-                .Unique();
+                .OnColumn("access_address_external_id");
         }
 
         public override void Down()
