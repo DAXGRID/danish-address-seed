@@ -208,13 +208,13 @@ namespace DanishAddressSeed
                 Name = "Addresses",
                 Fields = new List<Field>
                 {
-                    new Field("id", "string", false),
-                    new Field("roadNameHouseNumber", "string", false),
-                    new Field("townName", "string", false, true),
-                    new Field("postDistrictCode", "string", false, true),
-                    new Field("postDistrictName", "string", false, true),
-                    new Field("eastCoordinate", "string", false),
-                    new Field("northCoordinate", "string", false),
+                    new Field("id", FieldType.String, false),
+                    new Field("roadNameHouseNumber", FieldType.String, false),
+                    new Field("townName", FieldType.String, false, true),
+                    new Field("postDistrictCode", FieldType.String, false, true),
+                    new Field("postDistrictName", FieldType.String, false, true),
+                    new Field("eastCoordinate", FieldType.String, false),
+                    new Field("northCoordinate", FieldType.String, false),
                 },
             };
 
