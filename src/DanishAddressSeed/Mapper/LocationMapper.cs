@@ -8,7 +8,8 @@ namespace DanishAddressSeed.Mapper
     {
         public OfficialAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
                                         string postDistrictName,
-                                        string roadName, bool deleted = false)
+                                        string roadName,
+                                         bool deleted = false)
         {
             return new OfficialAccessAddress
             {
@@ -29,7 +30,7 @@ namespace DanishAddressSeed.Mapper
                 Status = GetStatusStringRepresentation(dawaAddress.Status),
                 TownName = dawaAddress.TownName,
                 Updated = dawaAddress.Updated,
-                Deleted = false
+                Deleted = deleted
             };
         }
 
@@ -45,7 +46,7 @@ namespace DanishAddressSeed.Mapper
                 UnitAddressExternalId = dawaAddress.UnitAddressExternalId,
                 Updated = dawaAddress.Updated,
                 AccessAddressExternalId = dawaAddress.AccessAddressExternalId,
-                Deleted = false
+                Deleted = deleted
             };
         }
 
