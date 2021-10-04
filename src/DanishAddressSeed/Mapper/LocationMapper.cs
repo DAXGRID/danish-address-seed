@@ -7,8 +7,8 @@ namespace DanishAddressSeed.Mapper
     internal class LocationMapper : ILocationMapper
     {
         public OfficialAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
-                                        string postDistrictName,
-                                        string roadName,
+                                         string postDistrictName,
+                                         string roadName,
                                          bool deleted = false)
         {
             return new OfficialAccessAddress
@@ -54,9 +54,9 @@ namespace DanishAddressSeed.Mapper
         {
             return new TypesenseOfficalAccessAddress
             {
-                EastCoordinate = address.EastCoordinate.ToString(),
+                EastCoordinate = address.EastCoordinate?.ToString() ?? "",
+                NorthCoordinate = address.NorthCoordinate?.ToString() ?? "",
                 Id = address.Id.ToString(),
-                NorthCoordinate = address.NorthCoordinate.ToString(),
                 PostDistrictCode = address.PostDistrictCode,
                 PostDistrictName = address.PostDistrictName,
                 RoadNameHouseNumber = $"{address.RoadName} {address.HouseNumber}",

@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
-using Typesense;
 using Typesense.Setup;
 
 namespace DanishAddressSeed
