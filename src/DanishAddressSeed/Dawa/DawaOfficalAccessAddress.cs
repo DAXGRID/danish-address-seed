@@ -33,9 +33,9 @@ namespace DanishAddressSeed.Dawa
         [JsonProperty("postnr")]
         public string PostDistrictCode { get; init; }
         [JsonProperty("etrs89koordinat_øst")]
-        public double EastCoordinate { get; init; }
+        public double? EastCoordinate { get; init; }
         [JsonProperty("etrs89koordinat_nord")]
-        public double NorthCoordinate { get; init; }
+        public double? NorthCoordinate { get; init; }
         [JsonProperty("adressepunktændringsdato")]
         public DateTime LocationUpdated { get; init; }
         [JsonProperty("id")]
@@ -46,6 +46,5 @@ namespace DanishAddressSeed.Dawa
         public string PlotExternalId { get; init; }
         [JsonProperty("navngivenvej_id")]
         public string RoadExternalId { get; init; }
-
     }
 }

@@ -13,8 +13,8 @@ namespace DanishAddressSeed.Location
         public string HouseNumber { get; init; }
         public string PostDistrictCode { get; init; }
         public string PostDistrictName { get; init; }
-        public double EastCoordinate { get; init; }
-        public double NorthCoordinate { get; init; }
+        public double? EastCoordinate { get; init; }
+        public double? NorthCoordinate { get; init; }
         public DateTime LocationUpdated { get; init; }
         public string AccessAdddressExternalId { get; init; }
         public string TownName { get; init; }
