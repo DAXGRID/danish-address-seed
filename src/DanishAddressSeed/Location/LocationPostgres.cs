@@ -72,8 +72,8 @@ namespace DanishAddressSeed.Location
                 };
 
                 command.Parameters.AddWithValue("@id", address.Id);
-                command.Parameters.AddWithValue("@east", address.EastCoordinate);
-                command.Parameters.AddWithValue("@north", address.NorthCoordinate);
+                command.Parameters.AddWithValue("@east", address.EastCoordinate is null ? DBNull.Value : address.EastCoordinate);
+                command.Parameters.AddWithValue("@north", address.NorthCoordinate is null ? DBNull.Value : address.NorthCoordinate);
                 command.Parameters.AddWithValue("@status", address.Status);
                 command.Parameters.AddWithValue(
                     "@house_number", string.IsNullOrEmpty(address.HouseNumber) ? DBNull.Value : address.HouseNumber);
@@ -146,8 +146,8 @@ namespace DanishAddressSeed.Location
                 Transaction = transaction
             };
 
-            command.Parameters.AddWithValue("@east", address.EastCoordinate);
-            command.Parameters.AddWithValue("@north", address.NorthCoordinate);
+            command.Parameters.AddWithValue("@east", address.EastCoordinate is null ? DBNull.Value : address.EastCoordinate);
+            command.Parameters.AddWithValue("@north", address.NorthCoordinate is null ? DBNull.Value : address.NorthCoordinate);
             command.Parameters.AddWithValue("@status", address.Status);
             command.Parameters.AddWithValue(
                 "@house_number", string.IsNullOrEmpty(address.HouseNumber) ? DBNull.Value : address.HouseNumber);
