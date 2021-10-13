@@ -37,7 +37,7 @@ namespace DanishAddressSeed.Dawa
         [JsonProperty("etrs89koordinat_nord")]
         public double? NorthCoordinate { get; init; }
         [JsonProperty("adressepunktændringsdato")]
-        public DateTime LocationUpdated { get; init; }
+        public DateTime? LocationUpdated { get; init; }
         [JsonProperty("id")]
         public string AccessAdddressExternalId { get; init; }
         [JsonProperty("supplerendebynavn")]
