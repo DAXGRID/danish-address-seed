@@ -6,10 +6,11 @@ namespace DanishAddressSeed.Mapper
 {
     internal class LocationMapper : ILocationMapper
     {
-        public OfficialAccessAddress Map(DawaOfficalAccessAddress dawaAddress,
-                                         string postDistrictName,
-                                         string roadName,
-                                         bool deleted = false)
+        public OfficialAccessAddress Map(
+            DawaOfficalAccessAddress dawaAddress,
+            string postDistrictName,
+            string roadName,
+            bool deleted = false)
         {
             return new OfficialAccessAddress
             {
@@ -19,7 +20,8 @@ namespace DanishAddressSeed.Mapper
                 NorthCoordinate = dawaAddress.NorthCoordinate,
                 HouseNumber = dawaAddress.HouseNumber,
                 Id = Guid.NewGuid(),
-                LocationUpdated = dawaAddress.LocationUpdated,
+                // We set it to default datetime because of an issue with DAWA.
+                LocationUpdated = dawaAddress.LocationUpdated ?? new DateTime(),
                 MunicipalCode = dawaAddress.MunicipalCode,
                 PlotExternalId = dawaAddress.PlotExternalId,
                 PostDistrictCode = dawaAddress.PostDistrictCode,
