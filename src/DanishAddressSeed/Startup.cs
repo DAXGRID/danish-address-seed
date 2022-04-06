@@ -170,7 +170,7 @@ namespace DanishAddressSeed
                 }
             }
 
-            await _locationPostgres.InsertOfficalAccessAddresses(addresses).ConfigureAwait(fasle);
+            await _locationPostgres.InsertOfficalAccessAddresses(addresses).ConfigureAwait(false);
             await _typesenseClient.ImportDocuments<TypesenseOfficalAccessAddress>(
                 CollectionName,
                 addresses.Select(x => _locationMapper.Map(x)).ToList(),
