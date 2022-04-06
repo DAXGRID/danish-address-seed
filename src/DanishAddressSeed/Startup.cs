@@ -20,6 +20,7 @@ namespace DanishAddressSeed
         private readonly ITypesenseClient _typesenseClient;
         private readonly ILocationMapper _locationMapper;
         private const Int16 ImportBatchCount = 500;
+        private const string CollectionName = "Addresses";
 
         public Startup(
             ILogger<Startup> logger,
@@ -42,25 +43,26 @@ namespace DanishAddressSeed
             _logger.LogInformation($"Starting {nameof(DanishAddressSeed)}");
             _migrationRunner.MigrateUp();
 
-            var lastTransactionId = await _locationPostgres.GetLatestTransactionHistory();
-            var newTransactionId = await _client.GetTransactionId();
+            var lastTransactionId = await _locationPostgres.GetLatestTransactionHistory().ConfigureAwait(false);
+            var newTransactionId = await _client.GetTransactionId().ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(lastTransactionId))
             {
                 _logger.LogInformation("First time running, doing full bulk import");
-                await SetupTypesense();
-                await BulkInsertAccessAddresses(newTransactionId);
-                await BulkInsertUnitAddresses(newTransactionId);
+                await SetupTypesense().ConfigureAwait(false);
+                await BulkInsertAccessAddresses(newTransactionId).ConfigureAwait(false);
+                await BulkInsertUnitAddresses(newTransactionId).ConfigureAwait(false);
             }
             else
             {
                 _logger.LogInformation($"Getting latest changes using existing tid {lastTransactionId} and new tid {newTransactionId}");
-                await UpdateAccessAddresses(lastTransactionId, newTransactionId);
-                await UpdateUnitAddresses(lastTransactionId, newTransactionId);
+                await UpdateAccessAddresses(lastTransactionId, newTransactionId).ConfigureAwait(false);
+                await UpdateUnitAddresses(lastTransactionId, newTransactionId).ConfigureAwait(false);
             }
 
             _logger.LogInformation($"Insert new transaction history with transaction_id '{newTransactionId}'");
-            await _locationPostgres.InsertTransactionHistory(newTransactionId, DateTime.UtcNow);
+            await _locationPostgres.InsertTransactionHistory(
+                newTransactionId, DateTime.UtcNow).ConfigureAwait(false);
 
             _logger.LogInformation($"Finished {nameof(DanishAddressSeed)}");
         }
@@ -68,7 +70,7 @@ namespace DanishAddressSeed
         private async Task UpdateAccessAddresses(string fromTransId, string toTransId)
         {
             var count = 0;
-            await foreach (var changeEvent in _client.RetrieveChangesOfficalAccessAddress(fromTransId, toTransId))
+            await foreach (var changeEvent in _client.RetrieveChangesOfficalAccessAddress(fromTransId, toTransId).ConfigureAwait(false))
             {
                 count++;
                 var address = changeEvent.Data;
@@ -82,18 +84,19 @@ namespace DanishAddressSeed
                         // We update the id here to make it match the one in the database
                         address = address with { Id = id };
 
-                        await _locationPostgres.UpdateOfficalAccessAddress(address);
+                        await _locationPostgres.UpdateOfficalAccessAddress(address).ConfigureAwait(false);
                         await _typesenseClient.UpdateDocument<TypesenseOfficalAccessAddress>
-                            ("Addresses", address.Id.ToString(), _locationMapper.Map(address));
+                            (CollectionName, address.Id.ToString(), _locationMapper.Map(address)).ConfigureAwait(false);
                         break;
                     case "insert":
                         await _locationPostgres.InsertOfficalAccessAddresses(
                             new List<OfficialAccessAddress> { address });
                         await _typesenseClient.CreateDocument<TypesenseOfficalAccessAddress>
-                            ("Addresses", _locationMapper.Map(address));
+                            (CollectionName, _locationMapper.Map(address)).ConfigureAwait(false);
                         break;
                     case "delete":
-                        id = await _locationPostgres.GetAccessAddressOnExternalId(changeEvent.Data.AccessAdddressExternalId);
+                        id = await _locationPostgres.GetAccessAddressOnExternalId(
+                            changeEvent.Data.AccessAdddressExternalId).ConfigureAwait(false);
                         if (Guid.Empty == id)
                             throw new Exception("Id cannot be empty on an access address deletion");
 
@@ -101,9 +104,10 @@ namespace DanishAddressSeed
                         address = address with { Id = id };
 
                         // We do an update here where the deleted is set
-                        await _locationPostgres.UpdateOfficalAccessAddress(address);
+                        await _locationPostgres.UpdateOfficalAccessAddress(address).ConfigureAwait(false);
                         // We use the primary id from the database since we don't have it on the address object
-                        await _typesenseClient.DeleteDocument<TypesenseOfficalAccessAddress>("Addresses", address.Id.ToString());
+                        await _typesenseClient.DeleteDocument<TypesenseOfficalAccessAddress>(
+                            CollectionName, address.Id.ToString()).ConfigureAwait(false);
                         break;
                     default:
                         throw new Exception(
@@ -117,17 +121,17 @@ namespace DanishAddressSeed
         private async Task UpdateUnitAddresses(string fromTransId, string toTransId)
         {
             var count = 0;
-            await foreach (var changeEvent in _client.RetrieveChangesOfficialUnitAddress(fromTransId, toTransId))
+            await foreach (var changeEvent in _client.RetrieveChangesOfficialUnitAddress(fromTransId, toTransId).ConfigureAwait(false))
             {
                 count++;
                 switch (changeEvent.Operation)
                 {
                     case "update":
-                        await _locationPostgres.UpdateOfficialUnitAddress(changeEvent.Data);
+                        await _locationPostgres.UpdateOfficialUnitAddress(changeEvent.Data).ConfigureAwait(false);
                         break;
                     case "insert":
                         await _locationPostgres.InsertOfficialUnitAddresses(
-                            new List<OfficialUnitAddress> { changeEvent.Data });
+                            new List<OfficialUnitAddress> { changeEvent.Data }).ConfigureAwait(false);
                         break;
                     case "delete":
                         // We do an update here where the deleted is set
@@ -146,18 +150,18 @@ namespace DanishAddressSeed
         {
             var addresses = new List<OfficialAccessAddress>();
             var count = 0;
-            await foreach (var accessAddress in _client.RetrieveAllOfficialAccessAddresses(newTransactionId))
+            await foreach (var accessAddress in _client.RetrieveAllOfficialAccessAddresses(newTransactionId).ConfigureAwait(false))
             {
                 addresses.Add(accessAddress);
 
                 if (addresses.Count == ImportBatchCount)
                 {
-                    await _locationPostgres.InsertOfficalAccessAddresses(addresses);
+                    await _locationPostgres.InsertOfficalAccessAddresses(addresses).ConfigureAwait(false);
                     await _typesenseClient.ImportDocuments<TypesenseOfficalAccessAddress>(
-                        "Addresses",
+                        CollectionName,
                         addresses.Select(x => _locationMapper.Map(x)).ToList(),
                         addresses.Count,
-                        ImportType.Create);
+                        ImportType.Create).ConfigureAwait(false);
 
                     count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
@@ -166,12 +170,12 @@ namespace DanishAddressSeed
                 }
             }
 
-            await _locationPostgres.InsertOfficalAccessAddresses(addresses);
+            await _locationPostgres.InsertOfficalAccessAddresses(addresses).ConfigureAwait(fasle);
             await _typesenseClient.ImportDocuments<TypesenseOfficalAccessAddress>(
-                "Addresses",
+                CollectionName,
                 addresses.Select(x => _locationMapper.Map(x)).ToList(),
                 addresses.Count,
-                ImportType.Create);
+                ImportType.Create).ConfigureAwait(false);
         }
 
         private async Task BulkInsertUnitAddresses(string newTransactionId)
@@ -186,25 +190,28 @@ namespace DanishAddressSeed
                 {
                     count += addresses.Count;
                     _logger.LogInformation($"Imported: {count}");
-                    await _locationPostgres.InsertOfficialUnitAddresses(addresses);
+                    await _locationPostgres.InsertOfficialUnitAddresses(addresses).ConfigureAwait(false);
                     addresses.Clear();
                 }
             }
 
-            await _locationPostgres.InsertOfficialUnitAddresses(addresses);
+            await _locationPostgres.InsertOfficialUnitAddresses(addresses).ConfigureAwait(false);
         }
 
         private async Task SetupTypesense()
         {
-            var collections = await _typesenseClient.RetrieveCollections();
-            // We do this to make sure that the state is clean on full bulk import
-            foreach (var collection in collections)
+            try
             {
-                await _typesenseClient.DeleteCollection(collection.Name);
+                // We do this to make sure that the state is clean on full bulk import
+                await _typesenseClient.DeleteCollection(CollectionName).ConfigureAwait(false);
+            }
+            catch (TypesenseApiNotFoundException)
+            {
+                // We do not do anything since, we only wanted to delete it, if it existed.
             }
 
             var schema = new Schema(
-                "Addresses",
+                CollectionName,
                 new List<Field>
                 {
                     new Field("id", FieldType.String, false),
@@ -216,7 +223,7 @@ namespace DanishAddressSeed
                     new Field("northCoordinate", FieldType.String, false),
                 });
 
-            await _typesenseClient.CreateCollection(schema);
+            await _typesenseClient.CreateCollection(schema).ConfigureAwait(false);
         }
     }
 }
