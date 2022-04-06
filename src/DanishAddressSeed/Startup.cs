@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using DanishAddressSeed.Dawa;
 using DanishAddressSeed.Location;
 using DanishAddressSeed.Mapper;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Typesense;
 
 namespace DanishAddressSeed
@@ -203,10 +203,9 @@ namespace DanishAddressSeed
                 await _typesenseClient.DeleteCollection(collection.Name);
             }
 
-            var schema = new Schema
-            {
-                Name = "Addresses",
-                Fields = new List<Field>
+            var schema = new Schema(
+                "Addresses",
+                new List<Field>
                 {
                     new Field("id", FieldType.String, false),
                     new Field("roadNameHouseNumber", FieldType.String, false),
@@ -215,8 +214,7 @@ namespace DanishAddressSeed
                     new Field("postDistrictName", FieldType.String, false, true),
                     new Field("eastCoordinate", FieldType.String, false),
                     new Field("northCoordinate", FieldType.String, false),
-                },
-            };
+                });
 
             await _typesenseClient.CreateCollection(schema);
         }

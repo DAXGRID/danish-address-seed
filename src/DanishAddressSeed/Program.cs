@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using DanishAddressSeed.Dawa;
+﻿using DanishAddressSeed.Dawa;
 using DanishAddressSeed.Location;
 using DanishAddressSeed.Mapper;
 using DanishAddressSeed.SchemaMigration;
@@ -11,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using Typesense.Setup;
 
 namespace DanishAddressSeed
@@ -59,12 +59,10 @@ namespace DanishAddressSeed
                     c.ApiKey = config.GetValue<string>("TYPESENSE_APIKEY");
                     c.Nodes = new List<Node>
                     {
-                        new Node
-                        {
-                            Host = config.GetValue<string>("TYPESENSE_HOST"),
-                            Port = config.GetValue<string>("TYPESENSE_PORT"),
-                            Protocol = config.GetValue<string>("TYPESENSE_PROTOCOL"),
-                        }
+                        new Node(
+                            config.GetValue<string>("TYPESENSE_HOST"),
+                            config.GetValue<string>("TYPESENSE_PORT"),
+                            config.GetValue<string>("TYPESENSE_PROTOCOL"))
                     };
                 })
                 .AddFluentMigratorCore()
