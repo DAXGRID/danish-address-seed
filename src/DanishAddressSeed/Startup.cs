@@ -56,7 +56,11 @@ namespace DanishAddressSeed
             else
             {
                 _logger.LogInformation($"Getting latest changes using existing tid {lastTransactionId} and new tid {newTransactionId}");
+
+                _logger.LogInformation("Starting updating access addresses.");
                 await UpdateAccessAddresses(lastTransactionId, newTransactionId).ConfigureAwait(false);
+
+                _logger.LogInformation("Starting updating unit addresses.");
                 await UpdateUnitAddresses(lastTransactionId, newTransactionId).ConfigureAwait(false);
             }
 
