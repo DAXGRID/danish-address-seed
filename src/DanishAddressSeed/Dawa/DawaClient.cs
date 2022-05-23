@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace DanishAddressSeed.Dawa
 {
-    internal class DawaClient : IDawaClient
+    internal sealed class DawaClient : IDawaClient
     {
+        private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering";
         private readonly HttpClient _httpClient;
         private readonly ILogger<DawaClient> _logger;
-        private const string _dawaBasePath = "https://api.dataforsyningen.dk/replikering";
         private readonly ILocationMapper _locationDawaMapper;
 
         public DawaClient(
@@ -31,9 +31,10 @@ namespace DanishAddressSeed.Dawa
         public async Task<string> GetTransactionId()
         {
             var transactionUrl = $"{_dawaBasePath}/senestetransaktion";
+            using var response = await _httpClient.GetAsync(
+                transactionUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
 
-            using var response = await _httpClient.GetAsync(transactionUrl, HttpCompletionOption.ResponseHeadersRead);
-            var stream = await response.Content.ReadAsStreamAsync();
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
@@ -50,16 +51,16 @@ namespace DanishAddressSeed.Dawa
 
         public async IAsyncEnumerable<OfficialAccessAddress> RetrieveAllOfficialAccessAddresses(string tId)
         {
-            var postCodesTask = GetPostCodes(tId);
-            var roadsTask = GetRoads(tId);
-
+            var postCodesTask = GetPostCodes(tId).ConfigureAwait(false);
+            var roadsTask = GetRoads(tId).ConfigureAwait(false);
             var postCodes = await postCodesTask;
             var roads = await roadsTask;
 
             var accessAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adgangsadresse&ndjson&txid={tId}";
+            using var response = await _httpClient.GetAsync(
+               accessAddressUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
 
-            using var response = await _httpClient.GetAsync(accessAddressUrl, HttpCompletionOption.ResponseHeadersRead);
-            using var stream = await response.Content.ReadAsStreamAsync();
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader)
             {
@@ -67,7 +68,7 @@ namespace DanishAddressSeed.Dawa
             };
 
             var serializer = new JsonSerializer();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync().ConfigureAwait(false))
             {
                 if (reader.TokenType == JsonToken.StartObject)
                 {
@@ -94,8 +95,9 @@ namespace DanishAddressSeed.Dawa
         {
             var unitAddressUrl = $"{_dawaBasePath}/udtraek?entitet=adresse&ndjson&txid={tId}";
 
-            using var response = await _httpClient.GetAsync(unitAddressUrl, HttpCompletionOption.ResponseHeadersRead);
-            using var stream = await response.Content.ReadAsStreamAsync();
+            using var response = await _httpClient.GetAsync(
+                unitAddressUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader)
             {
@@ -103,7 +105,7 @@ namespace DanishAddressSeed.Dawa
             };
 
             var serializer = new JsonSerializer();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync().ConfigureAwait(false))
             {
                 if (reader.TokenType == JsonToken.StartObject)
                 {
@@ -126,25 +128,25 @@ namespace DanishAddressSeed.Dawa
 
         public async IAsyncEnumerable<EntityChange<OfficialAccessAddress>> RetrieveChangesOfficalAccessAddress(string fromTransId, string toTransId)
         {
-            var serializer = new JsonSerializer();
-            var url = @$"{_dawaBasePath}/haendelser?entitet=adgangsadresse&txidfra={fromTransId}&txidtil={toTransId}";
-            var postNumberResponse = await _httpClient
-                .GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-
             var postCodesTask = GetPostCodes(toTransId);
             var roadsTask = GetRoads(toTransId);
-
             var postCodes = await postCodesTask;
             var roads = await roadsTask;
 
-            var stream = await postNumberResponse.Content.ReadAsStreamAsync();
+            var url = @$"{_dawaBasePath}/haendelser?entitet=adgangsadresse&txidfra={fromTransId}&txidtil={toTransId}";
+            using var accessAddressResponse = await _httpClient
+                .GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+            using var stream = await accessAddressResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader)
             {
                 SupportMultipleContent = true
             };
 
-            var dawaChangeEvents = serializer.Deserialize<List<DawaEntityChange<DawaOfficalAccessAddress>>>(reader);
+            var serializer = new JsonSerializer();
+            var dawaChangeEvents =
+                serializer.Deserialize<List<DawaEntityChange<DawaOfficalAccessAddress>>>(reader);
 
             foreach (var changeEvent in dawaChangeEvents)
             {
@@ -163,18 +165,20 @@ namespace DanishAddressSeed.Dawa
             }
         }
 
-        public async IAsyncEnumerable<EntityChange<OfficialUnitAddress>> RetrieveChangesOfficialUnitAddress(string fromTransId, string toTransId)
+        public async IAsyncEnumerable<EntityChange<OfficialUnitAddress>> RetrieveChangesOfficialUnitAddress(
+            string fromTransId, string toTransId)
         {
-            var serializer = new JsonSerializer();
             var url = @$"{_dawaBasePath}/haendelser?entitet=adresse&txidfra={fromTransId}&txidtil={toTransId}";
-            var postNumberResponse = await _httpClient
-                .GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient
+                .GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
 
-            var stream = await postNumberResponse.Content.ReadAsStreamAsync();
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var dawaChangeEvents = serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
+            var serializer = new JsonSerializer();
+            var dawaChangeEvents =
+                serializer.Deserialize<List<DawaEntityChange<DawaOfficalUnitAddress>>>(reader);
 
             foreach (var changeEvent in dawaChangeEvents)
             {
@@ -192,34 +196,33 @@ namespace DanishAddressSeed.Dawa
 
         private async Task<Dictionary<string, string>> GetRoads(string tId)
         {
-            var serializer = new JsonSerializer();
             var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=navngivenvej&txid={tId}";
-            var postNumberResponse = await _httpClient
-                .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient
+                .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
 
-            var stream = await postNumberResponse.Content.ReadAsStreamAsync();
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var result = serializer.Deserialize<List<DawaRoad>>(reader);
-
-            return result.ToDictionary(x => x.Id, x => x.Name);
+            var serializer = new JsonSerializer();
+            return serializer.Deserialize<List<DawaRoad>>(reader).ToDictionary(x => x.Id, x => x.Name);
         }
 
         private async Task<Dictionary<string, string>> GetPostCodes(string tId)
         {
             var serializer = new JsonSerializer();
             var postNumberUrl = $"{_dawaBasePath}/udtraek?entitet=postnummer&txid={tId}";
-            var postNumberResponse = await _httpClient
-                .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead);
 
-            var stream = await postNumberResponse.Content.ReadAsStreamAsync();
+            using var response = await _httpClient
+                .GetAsync(postNumberUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var streamReader = new StreamReader(stream);
             using var reader = new JsonTextReader(streamReader);
 
-            var result = serializer.Deserialize<List<DawaPostCode>>(reader);
-
-            return result.ToDictionary(x => x.Number, x => x.Name);
+            return serializer
+                .Deserialize<List<DawaPostCode>>(reader)
+                .ToDictionary(x => x.Number, x => x.Name);
         }
     }
 }
