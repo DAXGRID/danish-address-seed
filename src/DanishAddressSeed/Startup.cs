@@ -109,9 +109,19 @@ namespace DanishAddressSeed
 
                         // We do an update here where the deleted is set
                         await _locationPostgres.UpdateOfficalAccessAddress(address).ConfigureAwait(false);
-                        // We use the primary id from the database since we don't have it on the address object
-                        await _typesenseClient.DeleteDocument<TypesenseOfficalAccessAddress>(
-                            CollectionName, address.Id.ToString()).ConfigureAwait(false);
+
+                        // We use the primary id from the database since we don't have it on the address object.
+                        // We do the try catch on `TypesenseApiNotFoundException` because sometimes DAWA sends duplicated events.
+                        try
+                        {
+                            await _typesenseClient.DeleteDocument<TypesenseOfficalAccessAddress>(
+                                CollectionName, address.Id.ToString()).ConfigureAwait(false);
+                        }
+                        catch (TypesenseApiNotFoundException)
+                        {
+                            _logger.LogWarning(
+                                $"Could not delete document with id {address.Id} it might already have been deleted from Typesense.");
+                        }
                         break;
                     default:
                         throw new Exception(
